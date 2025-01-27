@@ -25,7 +25,10 @@ targets:
         excludes:
           - "**/*.plist"
 
-      - CommonFiles
+      - path: CommonFiles
+        excludes:
+          - "**/.gitkeep"
+
 
     # Config Files
     configFiles:

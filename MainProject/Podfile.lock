@@ -1,16 +1,79 @@
 PODS:
+  - CYLTabBarController (1.29.2):
+    - CYLTabBarController/Core (= 1.29.2)
+  - CYLTabBarController/Core (1.29.2)
+  - HYAllBase (0.0.1):
+    - CYLTabBarController (= 1.29.2)
+    - HYBaseUI
+    - HYResource
+    - Localize-Swift
+    - RxCocoa (= 6.8.0)
+    - RxRelay (= 6.8.0)
+    - RxSwift (= 6.8.0)
+    - SnapKit (= 5.7.1)
+    - Then (= 3.0.0)
+  - HYBaseUI (0.0.1):
+    - CYLTabBarController
+    - Localize-Swift
+    - SnapKit
+    - Then
   - HYEYE (0.0.1)
+  - HYResource (0.0.1):
+    - Localize-Swift
+  - Localize-Swift (3.2.0):
+    - Localize-Swift/LocalizeSwiftCore (= 3.2.0)
+    - Localize-Swift/UIKit (= 3.2.0)
+  - Localize-Swift/LocalizeSwiftCore (3.2.0)
+  - Localize-Swift/UIKit (3.2.0):
+    - Localize-Swift/LocalizeSwiftCore
+  - RxCocoa (6.8.0):
+    - RxRelay (= 6.8.0)
+    - RxSwift (= 6.8.0)
+  - RxRelay (6.8.0):
+    - RxSwift (= 6.8.0)
+  - RxSwift (6.8.0)
+  - SnapKit (5.7.1)
+  - Then (3.0.0)
 
 DEPENDENCIES:
+  - HYAllBase (from `../Components/HYAllBase`)
+  - HYBaseUI (from `../Components/HYBaseUI`)
   - HYEYE (from `../../HYEYE`)
+  - HYResource (from `../Components/HYResource`)
+
+SPEC REPOS:
+  https://github.com/CocoaPods/Specs.git:
+    - CYLTabBarController
+    - Localize-Swift
+    - RxCocoa
+    - RxRelay
+    - RxSwift
+    - SnapKit
+    - Then
 
 EXTERNAL SOURCES:
+  HYAllBase:
+    :path: "../Components/HYAllBase"
+  HYBaseUI:
+    :path: "../Components/HYBaseUI"
   HYEYE:
     :path: "../../HYEYE"
+  HYResource:
+    :path: "../Components/HYResource"
 
 SPEC CHECKSUMS:
+  CYLTabBarController: db44b5901a28693a8a4279e4721b3aafdd36c178
+  HYAllBase: 4036cbaaa4e41df5f249a720cf44b4231cf043d1
+  HYBaseUI: e8b139a2f86e157636f841cec643ae06a7d18abb
   HYEYE: 3c8347417ca0ca54b0da5a10bba69bc75e498504
+  HYResource: a5fc99a30e8d327e31486f360710a622027b8275
+  Localize-Swift: 6f4475136bdb0d7b2882ea3d4ea919d70142b232
+  RxCocoa: 2d33c1e1e5d66492052ad46b11024ae287572880
+  RxRelay: 335c78b926a2aea8d863a6d25f1ed3b5ad8e8705
+  RxSwift: 4e28be97cbcfeee614af26d83415febbf2bf6f45
+  SnapKit: d612e99e678a2d3b95bf60b0705ed0a35c03484a
+  Then: 844265ae87834bbe1147d91d5d41a404da2ec27d
 
-PODFILE CHECKSUM: 3214313af12c84ae2cb68d56a5d950bed2b7c392
+PODFILE CHECKSUM: d2e90018b2ad3e7f5be505559035ad36dc875811
 
 COCOAPODS: 1.14.3

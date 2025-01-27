@@ -26,7 +26,9 @@ targets:
         inferDestinationFiltersByPath: true
         excludes:
           - "**/*.plist"
-      - CommonFiles
+      - path: CommonFiles
+        excludes:
+          - "**/.gitkeep"
 
     # Config Files
     configFiles:
@@ -68,7 +70,9 @@ targets:
         inferDestinationFiltersByPath: true
         excludes:
           - "**/*.plist"
-      - CommonFiles
+      - path: CommonFiles
+        excludes:
+          - "**/.gitkeep"
 
     # Config Files
     configFiles:

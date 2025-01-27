@@ -30,14 +30,29 @@ def pod_develop
   st_installLocalPods(dir, arr)
 end
 
-project 'HYEYE_Pro.xcodeproj'
+def pod_components
+  dir = '../Components'
+  arr = [
+  'HYAllBase',
+  
+  'HYBaseUI',
+  'HYResource',
+  ]
+  st_installLocalPods(dir, arr)
+end
+
+project_path = './HYEYE_Pro.xcodeproj'
+
+project project_path
 target 'HYEYE_Pro' do
   # Pods for HYEYE_Pro
   pod_develop
   
+  pod_components
+  
 end
 
-
+project project_path
 target 'HYEYE_ProQ' do
   # Pods for HYEYE_Pro
   pod_develop
@@ -58,11 +73,11 @@ end
 # 修改工程配置
 project = Xcodeproj::Project.open(project_path)
 project.targets.each do |target|
-  if target.name == "HYEYE_ProQ"
-    target.build_configurations.each do |config|
-      config.build_settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS'] = '$(inherited) K_BETA' #添加 preview 宏
-    end
-  end
+if target.name == "HYEYE_ProQ"
+target.build_configurations.each do |config|
+config.build_settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS'] = '$(inherited) K_BETA' #添加 preview 宏
+end
+end
 end
 
 =end
