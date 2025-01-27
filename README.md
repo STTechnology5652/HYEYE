@@ -12,6 +12,23 @@ HYEYE 组件主要用于：
 - 1
 - 2
 
+## Demo 运行
+
+- 1. 电脑安装 xcodegen
+
+```shell
+brew install xcodegen --verbose
+```
+
+- 2. 构建xcode工程
+     > 终端进入主工程目录: MainProject
+
+```shell
+xcodegen generate
+
+pod install --verbose
+```
+
 ## 用法
 
 ### 集成
@@ -37,6 +54,7 @@ pod 'HYEYE', '~> x.x.x'
 ### 调用接口
 
 - objc
+
   ```objc
   //objc 代码
   ```
