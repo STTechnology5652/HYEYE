@@ -1,0 +1,92 @@
+############
+# Targets
+############
+
+targets:
+
+  # -----------
+  # MyApp_iOS
+  # -----------
+
+  # -----------
+  # NotificationContentQ
+  # -----------
+  NotificationContentQ:
+    platform: iOS
+    type: app-extension
+      
+    settings:
+      base:
+        # 1,2,3,4,7 1:iOS 2:macos 3:tvOS 4:watchOS 7:VisionOS
+        TARGETED_DEVICE_FAMILY: 1
+        INFOPLIST_FILE: "InfoFiles/NotificationContentInfo.plist"
+
+    sources:
+      - path: NotificationContent
+        inferDestinationFiltersByPath: true
+        excludes:
+          - "**/*.plist"
+      - CommonFiles
+
+    # Config Files
+    configFiles:
+      Debug: config/iOS-config/target-notificationContent-Q/config-custom/debug.xcconfig
+      Release: config/iOS-config/target-notificationContent-Q/config-custom/release.xcconfig
+      DebugQ: config/iOS-config/target-notificationContent-Q/config-enterprise/debug.xcconfig
+      ReleaseQ: config/iOS-config/target-notificationContent-Q/config-enterprise/release.xcconfig
+
+    # dependencies
+    dependencies:
+      - sdk: UserNotifications.framework
+
+    # scripts
+    preBuildScripts:
+      # show build configuration
+      - script: |
+          # Build Configuration
+          echo "Build target: $TARGETNAME"
+          echo "Build Configuration: $CONFIGURATION"
+          echo "GCC_PREPROCESSOR_DEFINITIONS: $GCC_PREPROCESSOR_DEFINITIONS"
+        name: 🔥build configuration
+
+  # -----------
+  # NotificationServiceQ
+  # -----------
+
+  NotificationServiceQ:
+    platform: iOS
+    type: app-extension
+      
+    settings:
+      base:
+        # 1,2,3,4,7 1:iOS 2:macos 3:tvOS 4:watchOS 7:VisionOS
+        TARGETED_DEVICE_FAMILY: 1
+        INFOPLIST_FILE: "InfoFiles/NotificationServiceInfo.plist"
+
+    sources:
+      - path: NotificationService
+        inferDestinationFiltersByPath: true
+        excludes:
+          - "**/*.plist"
+      - CommonFiles
+
+    # Config Files
+    configFiles:
+      Debug: config/iOS-config/target-notificationService-Q/config-custom/debug.xcconfig
+      Release: config/iOS-config/target-notificationService-Q/config-custom/release.xcconfig
+      DebugQ: config/iOS-config/target-notificationService-Q/config-enterprise/debug.xcconfig
+      ReleaseQ: config/iOS-config/target-notificationService-Q/config-enterprise/release.xcconfig
+
+    # dependencies
+    dependencies:
+      - sdk: UserNotifications.framework
+
+    # scripts
+    preBuildScripts:
+      # show build configuration
+      - script: |
+          # Build Configuration
+          echo "Build target: $TARGETNAME"
+          echo "Build Configuration: $CONFIGURATION"
+          echo "GCC_PREPROCESSOR_DEFINITIONS: $GCC_PREPROCESSOR_DEFINITIONS"
+        name: 🔥build configuration

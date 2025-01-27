@@ -1,0 +1,11 @@
+PRODUCT_NAME = NotificationContent
+PRODUCT_DISPLAY_NAME = NotificationContent
+PRODUCT_BUNDLE_IDENTIFIER = com.HY.HYEYE.notificationContent
+
+INFOPLIST_FILE = NotificationContent/NotificationContentInfo.plist
+
+// Objective-C Bridging Header
+//
+// Path to the header defining the Objective-C interfaces to be exposed in Swift.
+
+//SWIFT_OBJC_BRIDGING_HEADER = NotificationContent/NotificationContent-Bridging-Header.h

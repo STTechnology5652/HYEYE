@@ -1,0 +1,82 @@
+############
+# Targets
+############
+
+targets:
+
+  # -----------
+  # MyApp_iOS
+  # -----------
+
+  HYEYE_Pro:
+    type: application
+    platform: iOS
+      
+    settings:
+      base:
+        # 1,2,3,4,7 1:iOS 2:macos 3:tvOS 4:watchOS 7:VisionOS
+        TARGETED_DEVICE_FAMILY: 1
+        INFOPLIST_FILE: "InfoFiles/TargetMainInfo.plist"
+
+    # sources
+    sources:
+      - path: TargetMain
+        inferDestinationFiltersByPath: true
+        excludes:
+          - "**/*.plist"
+
+      - CommonFiles
+
+    # Config Files
+    configFiles:
+      Debug: config/iOS-config/target-main/config-custom/debug.xcconfig
+      Release: config/iOS-config/target-main/config-custom/release.xcconfig
+      DebugQ: config/iOS-config/target-main/config-enterprise/debug.xcconfig
+      ReleaseQ: config/iOS-config/target-main/config-enterprise/release.xcconfig
+
+    # dependencies
+    # dependencies:
+      # - target: NotificationContent
+      # - target: NotificationService
+    #    - carthage: Reusable
+    #    - package: SwiftyUtils
+    #    - sdk: CloudKit.framework
+
+    # scripts
+    preBuildScripts:
+      # show build configuration
+      - script: |
+          # Build Configuration
+          echo "Build target: $TARGETNAME"
+          echo "Build Configuration: $CONFIGURATION"
+          echo "GCC_PREPROCESSOR_DEFINITIONS: $GCC_PREPROCESSOR_DEFINITIONS"
+        name: 🔥build configuration
+
+schemes:
+  HYEYE_Pro:
+    build:
+      targets:
+        HYEYE_Pro: [ build,  analyze, profile, archive ]
+      config: Debug
+      parallelizeBuild: true
+      buildImplicitDependencies: true
+
+    test:
+      config: Debug
+
+    run:
+      config: Debug
+
+    profile:
+      config: Release
+
+    analyze:
+      config: Debug
+
+    archive:
+      config: Release
+      customArchiveName: HYEYE_Pro
+      revealArchiveInOrganizer: false
+    management:
+      share: true
+
