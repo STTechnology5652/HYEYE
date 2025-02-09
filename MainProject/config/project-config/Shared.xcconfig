@@ -412,7 +412,7 @@ INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard
 // in earlier versions will be weak-linked; your code should check for null function
 // pointers or specific system versions before calling newer APIs.
 
-IPHONEOS_DEPLOYMENT_TARGET = 11.0
+IPHONEOS_DEPLOYMENT_TARGET = 12.0
 
 
 // Product Name

@@ -1,5 +1,6 @@
 #私有源
 # source 'xxxxx'
+source 'https://github.com/STTechnology5652/STSpecs.git'
 
 #cocoapods源 最后声明, 可以解决私有源pod 与 公共源pod 重名的问题
 source 'https://github.com/CocoaPods/Specs.git'
@@ -37,8 +38,22 @@ def pod_components
   
   'HYBaseUI',
   'HYResource',
+  'HYRouterServiceDefine',
+  
+  'HYSettingModule',
+  'HYPlayModule',
   ]
   st_installLocalPods(dir, arr)
+end
+
+def pod_Q
+  
+  pod 'LookinServer', :configurations => ['Debug']
+  
+end
+
+def pod_third
+  pod 'STRxInOutPutProtocol', :git => 'https://github.com/STTechnology5652/STRxInOutPutProtocol.git', :tag => '0.0.1'
 end
 
 project_path = './HYEYE_Pro.xcodeproj'
@@ -47,8 +62,8 @@ project project_path
 target 'HYEYE_Pro' do
   # Pods for HYEYE_Pro
   pod_develop
-  
   pod_components
+  pod_third
   
 end
 
@@ -56,7 +71,11 @@ project project_path
 target 'HYEYE_ProQ' do
   # Pods for HYEYE_Pro
   pod_develop
-  
+  pod_components
+  pod_third
+
+  pod_Q
+
 end
 
 # target 'NotificationContent' do

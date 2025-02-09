@@ -1,36 +1,36 @@
 Pod::Spec.new do |spec|
 
-  spec.name         = "HYBaseUI"
+  spec.name         = "HYSettingModule"
   spec.version      = "0.0.1"
-  spec.summary      = "HYBaseUI 说明."
+  spec.summary      = "HYSettingModule 说明."
   spec.description      = <<-DESC
-  HYBaseUI long description of the pod here.
+  HYSettingModule long description of the pod here.
   DESC
 
-  spec.homepage         = 'http://github.com/stephenchen/HYBaseUI'
+  spec.homepage         = 'http://github.com/defualt_author/HYSettingModule'
   spec.license      = { :type => "MIT", :file => "LICENSE" }
-  spec.author             = { "stephenchen" => "stephen.chen@hellotalk.cn" }
+  spec.author             = { "defualt_author" => "defualt_email" }
   spec.ios.deployment_target = '12.0'
 
-  spec.source       = { :git => "http://github/stephenchen/HYBaseUI.git", :tag => "#{spec.version}" }
+  spec.source       = { :git => "http://github/defualt_author/HYSettingModule.git", :tag => "#{spec.version}" }
 
 
   # ――― Source Code ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
-  spec.source_files = 'HYBaseUI/{Public,Private}/**/*.{h,m,mm,c,cpp,swift}'
-  # spec.exclude_files = "HYBaseUI/Exclude" #排除文件
+  spec.source_files = 'HYSettingModule/{Public,Private}/**/*.{h,m,mm,c,cpp,swift}'
+  # spec.exclude_files = "HYSettingModule/Exclude" #排除文件
 
-  spec.project_header_files = 'HYBaseUI/Private/**/*.{h}'
-  spec.public_header_files = 'HYBaseUI/Public/**/*.h' #此处放置组件的对外暴漏的头文件
+  spec.project_header_files = 'HYSettingModule/Private/**/*.{h}'
+  spec.public_header_files = 'HYSettingModule/Public/**/*.h' #此处放置组件的对外暴漏的头文件
 
   # ――― binary framework/lib ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
-  #spec.vendored_frameworks = 'HYBaseUI/Private/**/*.framework'
-  #spec.vendored_libraries = 'HYBaseUI/Private/**/*.a'
+  #spec.vendored_frameworks = 'HYSettingModule/Private/**/*.framework'
+  #spec.vendored_libraries = 'HYSettingModule/Private/**/*.a'
 
   # ――― Resources ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
   # 放置 json,font,jpg,png等资源
-  #  spec.resources = ["HYBaseUI/{Public,Private}/**/*.{xib}"]
+  #  spec.resources = ["HYSettingModule/{Public,Private}/**/*.{xib}"]
   #  spec.resource_bundles = {
-  #    'HYBaseUI' => ['HYBaseUI/Assets/*.xcassets', "HYBaseUI/{Public,Private}/**/*.{png,jpg,font,json}"]
+  #    'HYSettingModule' => ['HYSettingModule/Assets/*.xcassets', "HYSettingModule/{Public,Private}/**/*.{png,jpg,font,json}"]
   #  }
 
 
@@ -48,20 +48,6 @@ Pod::Spec.new do |spec|
 
   # 其他依赖pod
   # spec.dependency "XXXXXXXX"
-  
-  spec.dependency 'HYResource'
-  
-  spec.dependency "Then"
-  spec.dependency "SnapKit"
-  spec.dependency "Localize-Swift"
-  spec.dependency "CYLTabBarController"
-  
-  spec.dependency "RxSwift", '6.8.0'
-  spec.dependency "RxCocoa", '6.8.0'
-  spec.dependency "RxRelay", '6.8.0'
-  spec.dependency "Then", '3.0.0'
-  spec.dependency "SnapKit", '5.7.1'
-  spec.dependency 'STRxInOutPutProtocol'
 
 #   spec.subspec 'WithLoad' do |ss|
 #       ss.source_files = 'YKHawkeye/Src/MethodUseTime/**/*{.h,.m}'
@@ -72,4 +58,8 @@ Pod::Spec.new do |spec|
 #       ss.vendored_frameworks = 'YKHawkeye/Framework/*.framework'
 #     end
 
+spec.dependency "STComponentTools/STRouter"
+spec.dependency "STModuleService.swift"  #swift 服务中间件
+spec.dependency 'HYAllBase'
+spec.dependency 'InAppSettingsKit', '~> 2.15'
 end

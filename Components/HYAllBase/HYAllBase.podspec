@@ -55,10 +55,15 @@ Pod::Spec.new do |spec|
    spec.dependency "SnapKit", '5.7.1'
    spec.dependency "Localize-Swift"
    spec.dependency "CYLTabBarController", '1.29.2'
-   
+   spec.dependency "MTCategoryComponent/UIKit/UIViewController"
+
    spec.dependency "HYBaseUI"
    spec.dependency "HYResource"
    
+   spec.dependency "STComponentTools", '0.0.5'
+   spec.dependency "HYRouterServiceDefine"
+   
+
 #   spec.subspec 'WithLoad' do |ss|
 #       ss.source_files = 'YKHawkeye/Src/MethodUseTime/**/*{.h,.m}'
 #       ss.pod_target_xcconfig = {

@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="22155" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22131"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23506"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
-        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="ViewController" customModule="HYEYE_Enterprise" customModuleProvider="target">
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="ViewController" customModule="HYEYE_Pro" customModuleProvider="target">
             <connections>
+                <outlet property="btnOpenSetting" destination="l32-fV-SgD" id="tqN-60-ePb"/>
+                <outlet property="btnPlay" destination="SZp-wE-gV4" id="fiJ-2M-DXZ"/>
                 <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
             </connections>
         </placeholder>
@@ -20,19 +22,30 @@
             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
             <subviews>
                 <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="l32-fV-SgD">
-                    <rect key="frame" x="159" y="408.66666666666669" width="75" height="35"/>
+                    <rect key="frame" x="146.66666666666666" y="408.66666666666669" width="100" height="35"/>
                     <constraints>
                         <constraint firstAttribute="height" constant="35" id="Oi8-Qc-YmI"/>
-                        <constraint firstAttribute="width" constant="75" id="Szu-jr-ctA"/>
+                        <constraint firstAttribute="width" constant="100" id="Szu-jr-ctA"/>
                     </constraints>
                     <state key="normal" title="Button"/>
-                    <buttonConfiguration key="configuration" style="plain" title="Button"/>
+                    <buttonConfiguration key="configuration" style="plain" title="Setting"/>
+                </button>
+                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="SZp-wE-gV4">
+                    <rect key="frame" x="146.66666666666666" y="453.66666666666669" width="100" height="35"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="100" id="G3o-Ww-hVz"/>
+                        <constraint firstAttribute="height" constant="35" id="pEd-W0-5wH"/>
+                    </constraints>
+                    <state key="normal" title="Button"/>
+                    <buttonConfiguration key="configuration" style="plain" title="Play"/>
                 </button>
             </subviews>
             <viewLayoutGuide key="safeArea" id="fnl-2z-Ty3"/>
             <color key="backgroundColor" systemColor="systemMintColor"/>
             <constraints>
+                <constraint firstItem="SZp-wE-gV4" firstAttribute="top" secondItem="l32-fV-SgD" secondAttribute="bottom" constant="10" id="3kp-DB-Vfa"/>
                 <constraint firstItem="l32-fV-SgD" firstAttribute="centerX" secondItem="i5M-Pr-FkT" secondAttribute="centerX" id="5Sk-z1-1gf"/>
+                <constraint firstItem="SZp-wE-gV4" firstAttribute="centerX" secondItem="i5M-Pr-FkT" secondAttribute="centerX" id="NzQ-Yj-BJL"/>
                 <constraint firstItem="l32-fV-SgD" firstAttribute="centerY" secondItem="i5M-Pr-FkT" secondAttribute="centerY" id="SWi-nS-lBd"/>
             </constraints>
             <point key="canvasLocation" x="115" y="-11"/>

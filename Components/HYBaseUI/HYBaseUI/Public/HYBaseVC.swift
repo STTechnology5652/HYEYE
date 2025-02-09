@@ -6,24 +6,44 @@
 //
 
 import UIKit
+import CYLTabBarController
+import HYResource
 
-class HYBaseVC: UIViewController {
+public typealias HYBaseViewControllerMVVM = HYBaseVC & STMvvmProtocol & HYBaseVC_RxProtocol
 
-    override func viewDidLoad() {
+public protocol HYBaseVC_RxProtocol {
+    var disposeBag: DisposeBag { get set}
+}
+
+open class HYBaseVC: CYLBaseViewController {
+    open override func viewDidLoad() {
         super.viewDidLoad()
-
-        // Do any additional setup after loading the view.
+        view.backgroundColor = UIColor.c_main
+        hidesBottomBarWhenPushed = true
+        
+        let btnBack = UIButton(type: .custom)
+        btnBack.setBackgroundImage(UIImage.hyImage(name: "ico_back"), for: .normal)
+        btnBack.addTarget(self, action: #selector(actionBact), for: .touchUpInside)
+        
+        navigationItem.leftBarButtonItem = UIBarButtonItem(customView: btnBack)
+        
+        if navigationController?.viewControllers.count ?? 0 < 2 {
+            cyl_navigationBarHidden = true
+        }
+        
+        if let `self` = self as? (any STMvvmProtocol) {
+            self.bindData()
+        }
     }
     
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
+    open override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        return .portrait
     }
-    */
-
+    
+    @objc private func actionBact() {
+        navigationController?.popViewController(animated: true)
+    }
+    
 }
+
+

@@ -6,24 +6,39 @@
 //
 
 import UIKit
+import HYAllBase
 
-class ViewController: UIViewController {
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-
-        // Do any additional setup after loading the view.
+class ViewController: HYBaseViewControllerMVVM {
+    @IBOutlet private weak var btnOpenSetting: UIButton!
+    @IBOutlet weak var btnPlay: UIButton!
+    
+    var vm = STViewControllerVM()
+    var disposeBag = DisposeBag()
+    
+    func bindData() {
+        let input: STViewControllerVM.Input = .init(
+            openSetting: btnOpenSetting.rx.tap.asDriver(),
+            openPlay: btnPlay.rx.tap.asDriver()
+        )
+        
+        let output = vm.transformInput(input)
+        output.openSettingCommand.drive(onNext: { [weak self] in
+            self?.openSettingVC()
+        })
+        .disposed(by: disposeBag)
+        
+        output.openPlayCommand.drive(onNext: { [weak self] in
+            self?.openPlayVC()
+        })
+        .disposed(by: disposeBag)
     }
-
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
+    
+    // MARK: - UIActions
+    private func openSettingVC() {
+        STRouter.shareInstance().stOpenUrlInstance(HYRouterServiceDefine.kRouterSetting, fromVC: self)
     }
-    */
-
+    
+    private func openPlayVC() {
+        STRouter.shareInstance().stOpenUrlInstance(HYRouterServiceDefine.kRouterPlay, fromVC: self)
+    }
 }

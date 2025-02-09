@@ -6,6 +6,8 @@
 //
 
 import UIKit
+import HYBaseUI
+import MTCategoryComponent.UIViewController_MTFindViewController
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -19,7 +21,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let tab = UITabBarController()
         var arr: [UIViewController] = [UIViewController]()
         do{
-            let nav = UINavigationController.init(rootViewController: ViewController())
+            let nav = HYBaseNavVC.init(rootViewController: ViewController())
             arr.append(nav)
         }
         
@@ -27,6 +29,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         win.rootViewController = tab
         win.makeKeyAndVisible()
         return true
+    }
+    
+    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        let topVC = UIViewController.mt_top()
+        return topVC.supportedInterfaceOrientations
     }
 }
 
