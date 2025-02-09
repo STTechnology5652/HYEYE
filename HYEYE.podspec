@@ -48,6 +48,8 @@ Pod::Spec.new do |spec|
 
   # 其他依赖pod
   # spec.dependency "XXXXXXXX"
+   spec.dependency "IJKMediaFramework"
+  
 
 #   spec.subspec 'WithLoad' do |ss|
 #       ss.source_files = 'YKHawkeye/Src/MethodUseTime/**/*{.h,.m}'

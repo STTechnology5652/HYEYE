@@ -61,4 +61,6 @@ Pod::Spec.new do |spec|
 spec.dependency "STComponentTools/STRouter"
 spec.dependency "STModuleService.swift"  #swift 服务中间件
 spec.dependency 'HYAllBase'
+
+spec.dependency 'HYEYE'
 end

@@ -5,6 +5,8 @@ source 'https://github.com/STTechnology5652/STSpecs.git'
 #cocoapods源 最后声明, 可以解决私有源pod 与 公共源pod 重名的问题
 source 'https://github.com/CocoaPods/Specs.git'
 
+# 用于修改:linkage => :dynamic，灵动课堂SDK需要动态库链接
+
 # Uncomment the next line to define a global platform for your project
 platform :ios, '12.0'
 
@@ -42,6 +44,7 @@ def pod_components
   
   'HYSettingModule',
   'HYPlayModule',
+  
   ]
   st_installLocalPods(dir, arr)
 end
@@ -54,6 +57,7 @@ end
 
 def pod_third
   pod 'STRxInOutPutProtocol', :git => 'https://github.com/STTechnology5652/STRxInOutPutProtocol.git', :tag => '0.0.1'
+  pod 'IJKMediaFramework', '0.0.3'
 end
 
 project_path = './HYEYE_Pro.xcodeproj'

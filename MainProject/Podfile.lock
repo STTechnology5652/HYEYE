@@ -25,9 +25,11 @@ PODS:
     - SnapKit (= 5.7.1)
     - STRxInOutPutProtocol
     - Then (= 3.0.0)
-  - HYEYE (0.0.1)
+  - HYEYE (0.0.1):
+    - IJKMediaFramework
   - HYPlayModule (0.0.1):
     - HYAllBase
+    - HYEYE
     - STComponentTools/STRouter
     - STModuleService.swift
   - HYResource (0.0.1):
@@ -38,6 +40,7 @@ PODS:
     - InAppSettingsKit (~> 2.15)
     - STComponentTools/STRouter
     - STModuleService.swift
+  - IJKMediaFramework (0.0.3)
   - InAppSettingsKit (2.15)
   - Localize-Swift (3.2.0):
     - Localize-Swift/LocalizeSwiftCore (= 3.2.0)
@@ -84,6 +87,7 @@ DEPENDENCIES:
   - HYResource (from `../Components/HYResource`)
   - HYRouterServiceDefine (from `../Components/HYRouterServiceDefine`)
   - HYSettingModule (from `../Components/HYSettingModule`)
+  - IJKMediaFramework (= 0.0.3)
   - LookinServer
   - STRxInOutPutProtocol (from `https://github.com/STTechnology5652/STRxInOutPutProtocol.git`, tag `0.0.1`)
 
@@ -101,6 +105,7 @@ SPEC REPOS:
     - Then
     - Toast
   https://github.com/STTechnology5652/STSpecs.git:
+    - IJKMediaFramework
     - MTCategoryComponent
     - STAnnotation
     - STComponentTools
@@ -134,11 +139,12 @@ SPEC CHECKSUMS:
   CYLTabBarController: db44b5901a28693a8a4279e4721b3aafdd36c178
   HYAllBase: 3f712a38007220abbe5eb634ccf89b1c492a9abb
   HYBaseUI: aca96eba3d38d05b80d11c594e9fdd7419fdfdb1
-  HYEYE: 23c29938e78f7c0eefae23395de66b7c2065cce3
-  HYPlayModule: e794892c4d9a295dcd1541a2011a211e74ec4c63
+  HYEYE: 4fc355d43d393cc39005e01b84de9de0f48cb4e6
+  HYPlayModule: e26e9de0168f6dfafd58c010ff7bd69b8e5d7b03
   HYResource: 85b8f0b7681420a19a326311106d36fadebf6ee6
   HYRouterServiceDefine: 834fc5e87df8a8663943a9367adb984a4ddb3891
   HYSettingModule: f45d68109f46376960be211ac633f6e92650d285
+  IJKMediaFramework: 90e35646188a266b5155269cddabe8af0145f582
   InAppSettingsKit: 4890a44f9df7a1742c632920f0ea939cbeb29ea2
   Localize-Swift: 6f4475136bdb0d7b2882ea3d4ea919d70142b232
   LookinServer: 1b2b61c6402ae29fa22182d48f5cd067b4e99e80
@@ -155,6 +161,6 @@ SPEC CHECKSUMS:
   Then: 844265ae87834bbe1147d91d5d41a404da2ec27d
   Toast: 1f5ea13423a1e6674c4abdac5be53587ae481c4e
 
-PODFILE CHECKSUM: 205b49e7b0383cd49c0b2ae7b8f1b3e02d85f8ab
+PODFILE CHECKSUM: 412cf7b58739c02ee0c53aeb7d74d3a38f72795b
 
 COCOAPODS: 1.14.3
