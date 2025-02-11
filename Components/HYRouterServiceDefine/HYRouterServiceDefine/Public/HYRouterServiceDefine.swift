@@ -9,5 +9,7 @@
 
 public class HYRouterServiceDefine {
     public static let kRouterPlay = "kRouterPlay"
+    public static let kRouterPara_url = "kRouterPara_url"
+    
     public static let kRouterSetting = "kRouterSetting"
 }

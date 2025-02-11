@@ -56,7 +56,7 @@ def pod_Q
 end
 
 def pod_third
-  pod 'STRxInOutPutProtocol', :git => 'https://github.com/STTechnology5652/STRxInOutPutProtocol.git', :tag => '0.0.1'
+  pod 'STRxInOutPutProtocol', '0.0.1'
   pod 'IJKMediaFramework', '0.0.3'
 end
 

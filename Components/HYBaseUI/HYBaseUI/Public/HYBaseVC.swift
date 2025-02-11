@@ -13,6 +13,8 @@ public typealias HYBaseViewControllerMVVM = HYBaseVC & STMvvmProtocol & HYBaseVC
 
 public protocol HYBaseVC_RxProtocol {
     var disposeBag: DisposeBag { get set}
+    
+    func setUpUI()
 }
 
 open class HYBaseVC: CYLBaseViewController {
@@ -29,6 +31,10 @@ open class HYBaseVC: CYLBaseViewController {
         
         if navigationController?.viewControllers.count ?? 0 < 2 {
             cyl_navigationBarHidden = true
+        }
+        
+        if let `self` = self as? HYBaseVC_RxProtocol {
+            self.setUpUI()
         }
         
         if let `self` = self as? (any STMvvmProtocol) {

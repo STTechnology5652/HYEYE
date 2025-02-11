@@ -54,6 +54,9 @@ class HYSettingVC: IASKAppSettingsViewController {
 
 // MARK: - MVVM methods
 extension HYSettingVC: STMvvmProtocol, HYBaseVC_RxProtocol {
+    func setUpUI() {
+    }
+    
     func bindData() {
     }
 }

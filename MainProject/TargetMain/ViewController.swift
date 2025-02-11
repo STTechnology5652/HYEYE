@@ -15,6 +15,9 @@ class ViewController: HYBaseViewControllerMVVM {
     var vm = STViewControllerVM()
     var disposeBag = DisposeBag()
     
+    func setUpUI() {
+    }
+    
     func bindData() {
         let input: STViewControllerVM.Input = .init(
             openSetting: btnOpenSetting.rx.tap.asDriver(),
@@ -35,10 +38,23 @@ class ViewController: HYBaseViewControllerMVVM {
     
     // MARK: - UIActions
     private func openSettingVC() {
-        STRouter.shareInstance().stOpenUrlInstance(HYRouterServiceDefine.kRouterSetting, fromVC: self)
+        let req = STRouterUrlRequest.instance { builder in
+            builder.urlToOpen = HYRouterServiceDefine.kRouterSetting
+            builder.fromVC = self
+        }
+        
+        stRouterOpenUrlRequest(req) {_ in }
     }
     
     private func openPlayVC() {
-        STRouter.shareInstance().stOpenUrlInstance(HYRouterServiceDefine.kRouterPlay, fromVC: self)
+        let req = STRouterUrlRequest.instance { builder in
+            builder.urlToOpen = HYRouterServiceDefine.kRouterPlay
+            builder.fromVC = self
+            builder.parameter = [
+                HYRouterServiceDefine.kRouterPara_url : HYCommonConfig.kPlayUrl
+            ]
+        }
+        
+        stRouterOpenUrlRequest(req) {_ in }
     }
 }
