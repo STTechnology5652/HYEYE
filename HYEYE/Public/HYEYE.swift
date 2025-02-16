@@ -282,7 +282,7 @@ extension HYEYE: HYEYEProtocol {
         // 创建播放器
         let player = IJKFFMoviePlayerController(contentURL: url, with: options)
         player?.shouldAutoplay = true
-        player?.scalingMode = .aspectFit
+        player?.scalingMode = .fill
         player?.shouldShowHudView = true
         
         #if DEBUG

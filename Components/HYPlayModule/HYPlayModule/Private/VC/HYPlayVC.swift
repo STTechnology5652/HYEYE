@@ -37,6 +37,10 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         bindData()
     }
     
+    override func viewDidLayoutSubviews() {
+        player?.view.frame = view.bounds
+    }
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         if player == nil {
@@ -93,14 +97,22 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         
         if let newPlayer = HYEYE.openVideo(url: url) {
             // 1. 先设置视图
-            let containerView = UIView(frame: view.bounds)
-            containerView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            let containerView = UIView()
             containerView.backgroundColor = .black
             view.insertSubview(containerView, at: 0)
+            containerView.snp.makeConstraints { make in
+                make.edges.equalToSuperview()
+            }
             
-            newPlayer.view.frame = containerView.bounds
-            newPlayer.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            // 设置播放器视图
+            newPlayer.view.frame = view.bounds
+//            newPlayer.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            // 旋转90度
+//            newPlayer.view.transform = CGAffineTransform(rotationAngle: .pi / 2)
             containerView.addSubview(newPlayer.view)
+//            newPlayer.view.snp.makeConstraints { make in
+//                make.edges.equalToSuperview()
+//            }
             
             // 2. 设置播放器和代理
             player = newPlayer
