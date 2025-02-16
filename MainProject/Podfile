@@ -57,7 +57,7 @@ end
 
 def pod_third
   pod 'STRxInOutPutProtocol', '0.0.1'
-  pod 'IJKMediaFramework', '0.0.3'
+  pod 'IJKMediaFramework', :git =>"https://github.com/STTechnology5652/IJKMediaFramework.git", :commit => "b7a0c88"
 end
 
 project_path = './HYEYE_Pro.xcodeproj'

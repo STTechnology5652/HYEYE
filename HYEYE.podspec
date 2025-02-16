@@ -49,7 +49,9 @@ Pod::Spec.new do |spec|
   # 其他依赖pod
   # spec.dependency "XXXXXXXX"
    spec.dependency "IJKMediaFramework"
-  
+   spec.dependency "RxSwift", '6.8.0'
+   spec.dependency "RxCocoa", '6.8.0'
+
 
 #   spec.subspec 'WithLoad' do |ss|
 #       ss.source_files = 'YKHawkeye/Src/MethodUseTime/**/*{.h,.m}'
