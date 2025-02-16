@@ -16,8 +16,7 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     // MARK: - Private Properties
     private let playUrl: String?
     private var player: IJKFFMoviePlayerController?
-    private var retryCount: Int = 0
-    private let maxRetryCount: Int = 3
+    private var playerContainerView: UIView?
     
     // MARK: - Initialization
     init(playUrl: String?) {
@@ -81,44 +80,94 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     }
     
     internal func bindData() {
-        guard let input = createInput() else {
-            return
-        }
-        
+        guard let input = createInput() else { return }
         let output = vm.transformInput(input)
         subscribeOutput(output)
     }
     
+    private func createInput() -> HYPlayVM.Input? {
+        // 播放按钮点击事件
+        btnPlay.rx.tap
+            .bind(onNext: { [weak self] in
+                if self?.btnPlay.isSelected == true {
+                    self?.stopPlayback()
+                } else {
+                    self?.startPlayback()
+                }
+            })
+            .disposed(by: disposeBag)
+        
+        return HYPlayVM.Input(
+            openVideoTrigger: vm.openVideoTrigger,
+            playTrigger: vm.playTrigger,
+            stopTrigger: vm.stopTrigger
+        )
+    }
+    
+    private func subscribeOutput(_ output: HYPlayVM.Output) {
+        // 播放状态
+        output.videoPlaying
+            .drive(onNext: { [weak self] playing in
+                self?.btnPlay.isSelected = playing
+                self?.btnPlay.setTitle(playing ? "Stop".stLocalLized : "Play".stLocalLized, 
+                                     for: .normal)
+            })
+            .disposed(by: disposeBag)
+        
+        // 播放状态文本
+        output.playStatus
+            .drive(labPlayStatus.rx.text)
+            .disposed(by: disposeBag)
+        
+        // 错误处理
+        output.error
+            .drive(labPlayStatus.rx.text)
+            .disposed(by: disposeBag)
+        
+        // 监听是否应该开始播放
+        output.shouldPlay
+            .drive(onNext: { [weak self] in
+                self?.player?.play()
+            })
+            .disposed(by: disposeBag)
+    }
+    
     // MARK: - Private Methods
     private func startPlayback() {
-        guard let playUrl = playUrl, 
-              let url = URL(string: playUrl),
-              player == nil else { return }
+        guard let playUrl = playUrl,
+                let url = URL(string: playUrl) else {
+            return
+        }
+        
+        if let player {
+            player.view.removeFromSuperview()
+            player.shutdown()
+            playerContainerView?.removeFromSuperview()
+        }
         
         if let newPlayer = HYEYE.openVideo(url: url) {
             // 1. 先设置视图
             let containerView = UIView()
             containerView.backgroundColor = .black
             view.insertSubview(containerView, at: 0)
+            playerContainerView = containerView
             containerView.snp.makeConstraints { make in
                 make.edges.equalToSuperview()
             }
             
             // 设置播放器视图
-            newPlayer.view.frame = view.bounds
-//            newPlayer.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            // 旋转90度
-//            newPlayer.view.transform = CGAffineTransform(rotationAngle: .pi / 2)
             containerView.addSubview(newPlayer.view)
-//            newPlayer.view.snp.makeConstraints { make in
-//                make.edges.equalToSuperview()
-//            }
-            
-            // 2. 设置播放器和代理
+            newPlayer.view.snp.makeConstraints { make in
+                make.edges.equalToSuperview()
+            }
+
+            // 2. 设置播放器
             player = newPlayer
-            HYEYE.sharedInstance.delegate = self
             
-            // 3. 等待视图准备好再开始播放
+            // 3. 触发播放事件
+            vm.playTrigger.accept(())
+            
+            // 4. 等待视图准备好再开始播放
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 self?.player?.prepareToPlay()
             }
@@ -126,6 +175,9 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     }
     
     private func stopPlayback() {
+        // 触发停止事件
+        vm.stopTrigger.accept(())
+        
         // 先移除通知监听
         NotificationCenter.default.removeObserver(self)
         
@@ -176,90 +228,7 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     }()
 }
 
-// MARK: - MVVM Methods
-extension HYPlayVC {
-    private func createInput() -> HYPlayVM.Input? {
-        btnPlay.rx.tap
-            .bind(onNext: { [weak self] in
-                let playing = self?.btnPlay.isSelected ?? false
-                if playing {
-                    self?.stopPlayback()
-                } else {
-                    self?.startPlayback()
-                }
-            })
-            .disposed(by: disposeBag)
-        
-        return HYPlayVM.Input(
-            openVideoTrigger: vm.openVideoTrigger
-        )
-    }
-    
-    private func subscribeOutput(_ output: HYPlayVM.Output) {
-        // 视频视图创建
-        output.videoCreate
-            .drive(onNext: { [weak self] playView in
-                guard let self, let playView else { return }
-                self.view.insertSubview(playView, at: 0)
-                // 使用 frame 而不是约束
-                playView.frame = self.view.bounds
-                playView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            })
-            .disposed(by: disposeBag)
-        
-        // 播放状态
-        output.videoPlaying
-            .drive(onNext: { [weak self] playing in
-                self?.btnPlay.isSelected = playing
-                self?.btnPlay.setTitle(playing ? "Stop".stLocalLized : "Play".stLocalLized, 
-                                     for: .normal)
-            })
-            .disposed(by: disposeBag)
-        
-        // 播放开始状态
-        output.videoPlayStart
-            .drive(onNext: { [weak self] success in
-                self?.labPlayStatus.text = success ? "Playing".stLocalLized : "Failed".stLocalLized
-            })
-            .disposed(by: disposeBag)
-    }
-}
-
 // MARK: - UI methods
 extension HYPlayVC {
     
-}
-
-// MARK: - HYEYEDelegate
-extension HYPlayVC: HYEYEDelegate {
-    func playbackStateDidChange(_ state: IJKMPMoviePlaybackState) {
-        switch state {
-        case .playing:
-            btnPlay.isSelected = true
-            labPlayStatus.text = "Playing".stLocalLized
-        case .stopped:
-            btnPlay.isSelected = false
-            labPlayStatus.text = "Stopped".stLocalLized
-        case .paused:
-            btnPlay.isSelected = false
-            labPlayStatus.text = "Paused".stLocalLized
-        default:
-            break
-        }
-    }
-    
-    func playbackDidFinishWithError(_ error: HYEYE.PlaybackError) {
-        showError(error.description)
-        retryCount += 1
-        if retryCount < maxRetryCount {
-            let delay = Double(retryCount) * 3.0
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                self?.doReconnect()
-            }
-        }
-    }
-    
-    func playbackDidPrepared() {
-        player?.play()
-    }
 }

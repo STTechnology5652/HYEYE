@@ -21,6 +21,12 @@ public protocol HYEYEDelegate: AnyObject {
 }
 
 public class HYEYE {
+    // 添加 Rx 信号
+    public let playbackState = PublishRelay<IJKMPMoviePlaybackState>()
+    public let playbackError = PublishRelay<PlaybackError>()
+    public let firstFrameRendered = PublishRelay<Void>()
+    public let isPreparedToPlay = PublishRelay<Bool>()
+    
     private var disposeBag: DisposeBag = DisposeBag()
     private var player: IJKFFMoviePlayerController?
     
@@ -196,6 +202,7 @@ private extension HYEYE {
     
     private func handlePlaybackError(_ error: PlaybackError) {
         print("播放错误: \(error.description)")
+        playbackError.accept(error)
         delegate?.playbackDidFinishWithError(error)
     }
     
@@ -209,6 +216,7 @@ private extension HYEYE {
         guard let player = notification.object as? IJKFFMoviePlayerController else { return }
         if player.isPreparedToPlay {
             print("视频准备就绪，可以开始播放")
+            isPreparedToPlay.accept(true)
             delegate?.playbackDidPrepared()
         }
     }
@@ -216,16 +224,16 @@ private extension HYEYE {
     func moviePlayBackStateDidChange(_ notification: Notification) {
         guard let player = notification.object as? IJKFFMoviePlayerController else { return }
         
-        switch player.playbackState {
+        let state = player.playbackState
+        playbackState.accept(state)
+        
+        switch state {
         case .stopped:
             print("播放停止")
-            delegate?.playbackStateDidChange(.stopped)
         case .playing:
             print("正在播放")
-            delegate?.playbackStateDidChange(.playing)
         case .paused:
             print("播放暂停")
-            delegate?.playbackStateDidChange(.paused)
         default:
             break
         }
@@ -233,11 +241,13 @@ private extension HYEYE {
     
     func moviePlayerDidShutdown(_ notification: Notification) {
         print("播放器已关闭")
+        playbackState.accept(.stopped)
         cleanupPlayer()
     }
     
     func moviePlayerFirstVideoFrameDidRender(_ notification: Notification) {
         print("首帧视频已渲染")
+        firstFrameRendered.accept(())
     }
 }
 
