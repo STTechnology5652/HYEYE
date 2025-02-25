@@ -29,6 +29,7 @@ PODS:
     - IJKMediaFramework
     - RxCocoa (= 6.8.0)
     - RxSwift (= 6.8.0)
+    - SnapKit
   - HYPlayModule (0.0.1):
     - HYAllBase
     - HYEYE
@@ -141,7 +142,7 @@ SPEC CHECKSUMS:
   CYLTabBarController: db44b5901a28693a8a4279e4721b3aafdd36c178
   HYAllBase: 3f712a38007220abbe5eb634ccf89b1c492a9abb
   HYBaseUI: aca96eba3d38d05b80d11c594e9fdd7419fdfdb1
-  HYEYE: c2bd3353c8c692826380ee33e63b853373debac0
+  HYEYE: 25f3390f5026a26f88dffba143a8d731e22d62a7
   HYPlayModule: e26e9de0168f6dfafd58c010ff7bd69b8e5d7b03
   HYResource: 85b8f0b7681420a19a326311106d36fadebf6ee6
   HYRouterServiceDefine: 834fc5e87df8a8663943a9367adb984a4ddb3891

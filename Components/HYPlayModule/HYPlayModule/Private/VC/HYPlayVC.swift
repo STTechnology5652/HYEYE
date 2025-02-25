@@ -21,7 +21,7 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     private var playerContainerView: UIView?
     
     // 触发器
-    private let openVideoTrigger = PublishRelay<String?>()
+    private let openVideoTrigger = PublishRelay<(String?, UIView)>()
     private let closeVideoTrigger = PublishRelay<Void>()
     private let playTrigger = PublishRelay<Void>()
     private let prepareToPlayTrigger = PublishRelay<Void>()
@@ -87,15 +87,13 @@ class HYPlayVC: HYBaseViewControllerMVVM {
                 }
             })
             .disposed(by: disposeBag)
+        
+        openVideoTrigger.accept((playUrl, view))
     }
     
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        
-        if player == nil {
-            print("viewWillAppear - trigger openVideo with url: \(playUrl ?? "nil")")
-            openVideoTrigger.accept(playUrl)
-        }
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        playTrigger.accept(())
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -120,7 +118,6 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         let input = HYPlayVM.HYPlayVMInput(
             openVideoUrl: openVideoTrigger.asObservable(),
             closeVideo: closeVideoTrigger.asObservable(),
-            prepareToPlayTrigger: prepareToPlayTrigger.asObservable(),
             playTrigger: playTrigger.asObservable(),
             stopTrigger: stopTrigger.asObservable(),
             photoTrigger: photoTrigger.asObservable(),
@@ -130,71 +127,11 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         let output = viewModel.transformInput(input)
         
         // 处理播放器
-        output.playerCreated
-            .drive(onNext: { [weak self] player in
-                guard let self = self,
-                      let player = player else { return }
-                
-                // 清理现有播放器
-                if let oldPlayer = self.player {
-                    oldPlayer.view.removeFromSuperview()
-                    oldPlayer.shutdown()
-                    self.playerContainerView?.removeFromSuperview()
+        output.playStateReplay
+            .drive(onNext: { [weak self] state in
+                if state == .playing {
+                    
                 }
-                
-                // 创建容器视图
-                let containerView = UIView()
-                containerView.backgroundColor = .black
-                self.view.insertSubview(containerView, at: 0)
-                self.playerContainerView = containerView
-                
-                // 设置容器视图约束
-                containerView.snp.makeConstraints { make in
-                    make.edges.equalToSuperview()
-                }
-                
-                // 添加播放器视图
-                containerView.addSubview(player.view)
-                player.view.snp.makeConstraints { make in
-                    make.edges.equalToSuperview()
-                }
-                
-                self.player = player
-                // 延迟准备播放
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self.prepareToPlayTrigger.accept(())
-                }
-            })
-            .disposed(by: disposeBag)
-        
-        output.videoPlaying
-            .drive(btnPlay.rx.isSelected)
-            .disposed(by: disposeBag)
-        
-        output.playStatus
-            .drive(labPlayStatus.rx.text)
-            .disposed(by: disposeBag)
-        
-        output.error
-            .drive(onNext: { [weak self] errorMessage in
-                self?.showErrorAlert(errorMessage)
-            })
-            .disposed(by: disposeBag)
-        
-        output.shouldPlay
-            .drive(onNext: { [weak self] in
-                self?.player?.play()
-            })
-            .disposed(by: disposeBag)
-        
-        output.isRecording
-            .drive(recordButton.rx.isSelected)
-            .disposed(by: disposeBag)
-        
-        output.recordingPath
-            .drive(onNext: { [weak self] path in
-                guard let path = path else { return }
-                self?.showRecordingFinishedAlert(path: path)
             })
             .disposed(by: disposeBag)
     }

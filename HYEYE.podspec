@@ -51,6 +51,7 @@ Pod::Spec.new do |spec|
    spec.dependency "IJKMediaFramework"
    spec.dependency "RxSwift", '6.8.0'
    spec.dependency "RxCocoa", '6.8.0'
+   spec.dependency "SnapKit"
 
 
 #   spec.subspec 'WithLoad' do |ss|
