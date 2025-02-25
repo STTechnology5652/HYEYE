@@ -9,6 +9,8 @@
 import IJKMediaFramework.IJKFFOptions
 import RxCocoa
 import RxSwift
+import Photos
+import AVFoundation
 
 public protocol HYEYEProtocol {
     static func openVideo(url: URL) -> IJKFFMoviePlayerController?
@@ -20,106 +22,251 @@ public protocol HYEYEDelegate: AnyObject {
     func playbackDidPrepared()
 }
 
-public class HYEYE {
-    // 添加 Rx 信号
+public class HYEYE: NSObject {
+    // MARK: - Properties
+    public static let sharedInstance = HYEYE()
+    
+    // Rx Signals
     public let playbackState = PublishRelay<IJKMPMoviePlaybackState>()
     public let playbackError = PublishRelay<PlaybackError>()
     public let firstFrameRendered = PublishRelay<Void>()
     public let isPreparedToPlay = PublishRelay<Bool>()
+    public let capturedImage = PublishRelay<UIImage>()
+    public let captureProgress = PublishRelay<(current: Int, total: Int)>()
     
-    private var disposeBag: DisposeBag = DisposeBag()
+    private var disposeBag = DisposeBag()
     private var player: IJKFFMoviePlayerController?
-    
-    public static let sharedInstance = HYEYE().registNotice()
     
     public weak var delegate: HYEYEDelegate?
     
-    /*
-     /* Register observers for the various movie object notifications. */
-     -(void)installMovieNotificationObservers
-     {
-         NSLog(@"installMovieNotificationObservers");
-
-         [[NSNotificationCenter defaultCenter] addObserver:self
-                                                  selector:@selector(loadStateDidChange:)
-                                                      name:IJKMPMoviePlayerLoadStateDidChangeNotification
-                                                    object:_player];
-         
-         [[NSNotificationCenter defaultCenter] addObserver:self
-                                                  selector:@selector(moviePlayBackDidFinish:)
-                                                      name:IJKMPMoviePlayerPlaybackDidFinishNotification
-                                                    object:_player];
-         
-         [[NSNotificationCenter defaultCenter] addObserver:self
-                                                  selector:@selector(mediaIsPreparedToPlayDidChange:)
-                                                      name:IJKMPMediaPlaybackIsPreparedToPlayDidChangeNotification
-                                                    object:_player];
-         
-         [[NSNotificationCenter defaultCenter] addObserver:self
-                                                  selector:@selector(moviePlayBackStateDidChange:)
-                                                      name:IJKMPMoviePlayerPlaybackStateDidChangeNotification
-                                                    object:_player];
-         
-         [[NSNotificationCenter defaultCenter] addObserver:self
-                                                  selector:@selector(moviePlayerDidShutdown:)
-                                                      name:IJKMPMoviePlayerDidShutdownNotification
-                                                    object:_player];
-         
-         [[NSNotificationCenter defaultCenter] addObserver:self
-                                                  selector:@selector(moviePlayerFirstVideoFrameDidRender:)
-                                                      name:IJKMPMoviePlayerFirstVideoFrameRenderedNotification
-                                                    object:_player];
-     }
-     */
+    // 进度相关属性
+    private var lastProgressUpdate: TimeInterval = 0
+    private let progressUpdateInterval: TimeInterval = 0.1
     
+    // MARK: - Public Methods
+    public static func openVideo(url: URL) -> IJKFFMoviePlayerController? {
+        return HYEYE.sharedInstance.openVideo(url: url)
+    }
+    
+    override init() {
+        super.init()
+        setupAudioSession()
+        registNotice()
+    }
+    
+    private func setupAudioSession() {
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("HYEYE: 设置音频会话失败: \(error.localizedDescription)")
+        }
+    }
+    
+    private func openVideo(url: URL) -> IJKFFMoviePlayerController? {
+        let options = IJKFFOptions.byDefault()
+        
+        // 基础配置
+        options?.setPlayerOptionIntValue(Int64(RtpJpegParsePacketMethodDrop.rawValue), forKey: "rtp-jpeg-parse-packet-method")
+        options?.setPlayerOptionIntValue(5000 * 1000, forKey: "readtimeout")
+        
+        // 添加后台播放配置
+        options?.setPlayerOptionIntValue(1, forKey: "pause-in-background") // 0 表示不暂停
+        options?.setPlayerOptionIntValue(1, forKey: "enable-background-play") // 启用后台播放
+        
+        // 创建播放器
+        let player = IJKFFMoviePlayerController(contentURL: url, with: options)
+        player?.shouldAutoplay = true
+        player?.scalingMode = .aspectFit
+        player?.shouldShowHudView = false
+        player?.delegate = self
+        
+        // 设置后台播放
+        player?.setPauseInBackground(false)
+        
+        self.player = player
+        return player
+    }
+    
+    // 截图方法
+    public func takeSnapshot() -> UIImage? {
+        guard let player = player else {
+            print("HYEYE: 没有活动的播放器")
+            return nil
+        }
+        return player.thumbnailImageAtCurrentTime()
+    }
+    
+    // 更新进度的辅助方法
+    private func updateProgress(count: Int, total: Int) {
+        let now = Date().timeIntervalSince1970
+        if now - lastProgressUpdate >= progressUpdateInterval {
+            captureProgress.accept((count, total))
+            lastProgressUpdate = now
+        }
+    }
+    
+    // MARK: - Photo Capture
+    public typealias PhotoConfig = HYPhotoConfig
+    
+    public func takePhoto(config: HYPhotoConfig, progressCallback: @escaping (Int, Int) -> Void) {
+        guard let player = player else {
+            print("HYEYE: 没有活动的播放器")
+            progressCallback(0, 0)
+            return
+        }
+        
+        // 使用 thumbnailImageAtCurrentTime 方法进行截图
+        if let image = player.thumbnailImageAtCurrentTime() {
+            // 保存图片
+            if let savePath = config.savePath {
+                saveToFile(image: image, path: savePath, quality: config.imageQuality)
+            } else {
+                PHPhotoLibrary.requestAuthorization { [weak self] status in
+                    guard let self = self else { return }
+                    
+                    if status == .authorized {
+                        self.saveToPhotoLibrary(image: image, quality: config.imageQuality)
+                    }
+                    progressCallback(1, 1)
+                }
+            }
+            
+            // 发送截图结果
+            capturedImage.accept(image)
+            progressCallback(1, 1)
+        } else {
+            print("HYEYE: 截图失败")
+            progressCallback(0, 0)
+        }
+    }
+    
+    // MARK: - Private Methods
+    private func saveToFile(image: UIImage, path: String, quality: Float) {
+        let fileManager = FileManager.default
+        
+        // 确保目录存在
+        try? fileManager.createDirectory(atPath: path, withIntermediateDirectories: true)
+        
+        // 生成文件名
+        let timestamp = Int(Date().timeIntervalSince1970 * 1000)
+        let fileName = "\(path)/IMG_\(timestamp).jpg"
+        
+        // 保存文件
+        if let data = image.jpegData(compressionQuality: CGFloat(quality)) {
+            do {
+                try data.write(to: URL(fileURLWithPath: fileName))
+                print("HYEYE: 照片保存到文件: \(fileName)")
+            } catch {
+                print("HYEYE: 照片保存到文件失败: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func saveToPhotoLibrary(image: UIImage, quality: Float) {
+        PHPhotoLibrary.shared().performChanges({
+            PHAssetChangeRequest.creationRequestForAsset(from: image)
+        }) { success, error in
+            if success {
+                print("HYEYE: 照片保存到相册成功")
+            } else {
+                print("HYEYE: 照片保存到相册失败: \(error?.localizedDescription ?? "unknown error")")
+            }
+        }
+    }
+}
+
+// MARK: - IJKFFMoviePlayerDelegate
+extension HYEYE: IJKFFMoviePlayerDelegate {
+    public func player(_ player: IJKFFMoviePlayerController, didReceiveRtcpSrData data: Data) {
+        print("HYEYE: 收到 RTCP SR 数据，长度: \(data.count)")
+    }
+    
+    public func player(_ player: IJKFFMoviePlayerController, didReceive data: Data) {
+        print("HYEYE: 收到数据包，长度: \(data.count)")
+    }
+    
+    public func playerDidTakePicture(_ player: IJKFFMoviePlayerController, resultCode: Int32, fileName: String) {
+        print("HYEYE: 拍照完成 - 文件名: \(fileName), 结果码: \(resultCode)")
+        
+        if resultCode == 0 {
+            if let image = UIImage(contentsOfFile: fileName) {
+                capturedImage.accept(image)
+            }
+        } else {
+            print("HYEYE: 截图失败，错误码: \(resultCode)")
+        }
+    }
+    
+    public func player(onNotifyDeviceConnected player: IJKFFMoviePlayerController) {
+        print("HYEYE: 设备已连接")
+    }
+}
+
+// MARK: - Notification Handling
+extension HYEYE {
     private func registNotice() -> Self {
-        let notiCenter = NotificationCenter.default
+        NotificationCenter.default.addObserver(self,
+                                             selector: #selector(mediaIsPreparedToPlayDidChange(_:)),
+                                             name: .IJKMPMediaPlaybackIsPreparedToPlayDidChange,
+                                             object: nil)
         
-        // Load state change notification
-        notiCenter.rx.notification(.IJKMPMoviePlayerLoadStateDidChange)
-            .subscribe { [weak self] notification in
-                self?.loadStateDidChange(notification)
-            }
-            .disposed(by: disposeBag)
+        NotificationCenter.default.addObserver(self,
+                                             selector: #selector(moviePlayBackStateDidChange(_:)),
+                                             name: .IJKMPMoviePlayerPlaybackStateDidChange,
+                                             object: nil)
         
-        // Playback finish notification
-        notiCenter.rx.notification(.IJKMPMoviePlayerPlaybackDidFinish)
-            .subscribe { [weak self] notification in
-                self?.moviePlayBackDidFinish(notification)
-            }
-            .disposed(by: disposeBag)
+        NotificationCenter.default.addObserver(self,
+                                             selector: #selector(moviePlayerFirstVideoFrameRendered(_:)),
+                                             name: .IJKMPMoviePlayerFirstVideoFrameRendered,
+                                             object: nil)
         
-        // Media prepared to play notification
-        notiCenter.rx.notification(.IJKMPMediaPlaybackIsPreparedToPlayDidChange)
-            .subscribe { [weak self] notification in
-                self?.mediaIsPreparedToPlayDidChange(notification)
-            }
-            .disposed(by: disposeBag)
+        // 添加应用生命周期通知
+        NotificationCenter.default.addObserver(self,
+                                             selector: #selector(applicationWillResignActive(_:)),
+                                             name: UIApplication.willResignActiveNotification,
+                                             object: nil)
         
-        // Playback state change notification
-        notiCenter.rx.notification(.IJKMPMoviePlayerPlaybackStateDidChange)
-            .subscribe { [weak self] notification in
-                self?.moviePlayBackStateDidChange(notification)
-            }
-            .disposed(by: disposeBag)
-        
-        // Player shutdown notification
-        notiCenter.rx.notification(.IJKMPMoviePlayerDidShutdown)
-            .subscribe { [weak self] notification in
-                self?.moviePlayerDidShutdown(notification)
-            }
-            .disposed(by: disposeBag)
-        
-        // First video frame rendered notification
-        notiCenter.rx.notification(.IJKMPMoviePlayerFirstVideoFrameRendered)
-            .subscribe { [weak self] notification in
-                self?.moviePlayerFirstVideoFrameDidRender(notification)
-            }
-            .disposed(by: disposeBag)
+        NotificationCenter.default.addObserver(self,
+                                             selector: #selector(applicationDidBecomeActive(_:)),
+                                             name: UIApplication.didBecomeActiveNotification,
+                                             object: nil)
         
         return self
     }
     
+    @objc private func mediaIsPreparedToPlayDidChange(_ notification: Notification) {
+        guard let player = notification.object as? IJKFFMoviePlayerController else { return }
+        if player.isPreparedToPlay {
+            isPreparedToPlay.accept(true)
+            delegate?.playbackDidPrepared()
+        }
+    }
+    
+    @objc private func moviePlayBackStateDidChange(_ notification: Notification) {
+        guard let player = notification.object as? IJKFFMoviePlayerController else { return }
+        playbackState.accept(player.playbackState)
+    }
+    
+    @objc private func moviePlayerFirstVideoFrameRendered(_ notification: Notification) {
+        firstFrameRendered.accept(())
+    }
+    
+    @objc private func applicationWillResignActive(_ notification: Notification) {
+        // 确保进入后台时不暂停播放
+        player?.setPauseInBackground(false)
+    }
+    
+    @objc private func applicationDidBecomeActive(_ notification: Notification) {
+        // 如果需要，可以在这里添加恢复播放的逻辑
+        if let player = player, !player.isPlaying() {
+            player.play()
+        }
+    }
+}
+
+//MARK: - Protocol Implementation
+extension HYEYE: HYEYEProtocol {
     public enum PlaybackError {
         case connectionFailed
         case playbackFailed
@@ -136,173 +283,120 @@ public class HYEYE {
             }
         }
     }
-}
-
-//MARK: - IJKFFMoviePlayer notification
-private extension HYEYE {
-    // 通知处理方法
-    func loadStateDidChange(_ notification: Notification) {
-        guard let player = notification.object as? IJKFFMoviePlayerController else { return }
-        
-        let loadState: IJKMPMovieLoadState = player.loadState
-        print("Load state changed: \(loadState.rawValue)")
-        
-        if (loadState.rawValue & IJKMPMovieLoadState.playable.rawValue) != 0 {
-            print("视频加载完成，可以播放")
-            // 可以尝试立即开始播放
-            player.play()
-        }
-        
-        if (loadState.rawValue & IJKMPMovieLoadState.playthroughOK.rawValue) != 0 {
-            print("视频缓冲充足")
-        }
-        
-        if (loadState.rawValue & IJKMPMovieLoadState.stalled.rawValue) != 0 {
-            print("视频加载停滞，正在缓冲")
-            // 可以显示loading提示
-        }
-        
-        // 检查错误状态
-        if loadState.rawValue == 0 {
-            print("加载状态异常，可能是连接失败")
-        }
-    }
-    
-    func moviePlayBackDidFinish(_ notification: Notification) {
-        guard let player = notification.object as? IJKFFMoviePlayerController,
-              let userInfo = notification.userInfo,
-              let finishReason = userInfo[IJKMPMoviePlayerPlaybackDidFinishReasonUserInfoKey] as? Int else {
-            print("播放结束通知解析失败")
-            return
-        }
-        
-        print("notification: \(notification)")
-        switch finishReason {
-        case IJKMPMovieFinishReason.playbackEnded.rawValue:
-            print("播放完成")
-            cleanupPlayer()
-        case IJKMPMovieFinishReason.playbackError.rawValue:
-            let errorCode = player.currentPlaybackTime // 使用播放时间来判断是否是连接错误
-            if errorCode == 0 {
-                print("RTSP连接失败，错误码: \(finishReason)")
-                handlePlaybackError(.connectionFailed)
-            } else {
-                print("播放过程中发生错误，错误码: \(finishReason)")
-                handlePlaybackError(.playbackFailed)
-            }
-            cleanupPlayer()
-        case IJKMPMovieFinishReason.userExited.rawValue:
-            print("用户退出播放")
-            cleanupPlayer()
-        default:
-            print("未知的播放结束原因: \(finishReason)")
-            cleanupPlayer()
-        }
-    }
     
     private func handlePlaybackError(_ error: PlaybackError) {
         print("播放错误: \(error.description)")
         playbackError.accept(error)
         delegate?.playbackDidFinishWithError(error)
     }
+}
+
+// MARK: - PhotoSaver
+private class PhotoSaver: NSObject {
+    private let saveQueue = DispatchQueue(label: "com.hyeye.photosaver", qos: .userInitiated)
     
-    private func cleanupPlayer() {
-        player?.shutdown()
-        player = nil
-        disposeBag = DisposeBag()
-    }
-    
-    func mediaIsPreparedToPlayDidChange(_ notification: Notification) {
-        guard let player = notification.object as? IJKFFMoviePlayerController else { return }
-        if player.isPreparedToPlay {
-            print("视频准备就绪，可以开始播放")
-            isPreparedToPlay.accept(true)
-            delegate?.playbackDidPrepared()
+    func savePhoto(_ image: UIImage, quality: Float, completion: @escaping (Bool, Error?) -> Void) {
+        saveQueue.async {
+            PHPhotoLibrary.shared().performChanges({
+                PHAssetChangeRequest.creationRequestForAsset(from: image)
+            }) { success, error in
+                DispatchQueue.main.async {
+                    completion(success, error)
+                }
+            }
         }
-    }
-    
-    func moviePlayBackStateDidChange(_ notification: Notification) {
-        guard let player = notification.object as? IJKFFMoviePlayerController else { return }
-        
-        let state = player.playbackState
-        playbackState.accept(state)
-        
-        switch state {
-        case .stopped:
-            print("播放停止")
-        case .playing:
-            print("正在播放")
-        case .paused:
-            print("播放暂停")
-        default:
-            break
-        }
-    }
-    
-    func moviePlayerDidShutdown(_ notification: Notification) {
-        print("播放器已关闭")
-        playbackState.accept(.stopped)
-        cleanupPlayer()
-    }
-    
-    func moviePlayerFirstVideoFrameDidRender(_ notification: Notification) {
-        print("首帧视频已渲染")
-        firstFrameRendered.accept(())
     }
 }
 
-//MARK: - Protocol Implementation
-extension HYEYE: HYEYEProtocol {
-    public static func openVideo(url: URL) -> IJKFFMoviePlayerController? {
-        return HYEYE.sharedInstance.openVideo(url: url)
+// MARK: - Image Processing
+extension HYEYE {
+    private func createImage(from frameData: Data, width: Int, height: Int, pixelFormat: UInt32) -> UIImage? {
+        print("HYEYE: 开始转换图像 - 格式: \(pixelFormat)")
+        
+        switch pixelFormat {
+        case kCVPixelFormatType_32BGRA:
+            return createBGRAImage(from: frameData, width: width, height: height)
+        case kCVPixelFormatType_420YpCbCr8Planar: // YUV420P
+            return createYUVImage(from: frameData, width: width, height: height)
+        default:
+            print("HYEYE: 不支持的像素格式: \(pixelFormat)")
+            return nil
+        }
     }
     
-    private func openVideo(url: URL) -> IJKFFMoviePlayerController? {
-        let options = IJKFFOptions.byDefault()
+    private func createBGRAImage(from frameData: Data, width: Int, height: Int) -> UIImage? {
+        guard let provider = CGDataProvider(data: frameData as CFData) else { return nil }
         
-        // 播放器基础选项
-        options?.setPlayerOptionIntValue(Int64(RtpJpegParsePacketMethodDrop.rawValue), forKey: "rtp-jpeg-parse-packet-method")
-        options?.setPlayerOptionIntValue(0, forKey: "videotoolbox")
-        options?.setPlayerOptionIntValue(5000 * 1000, forKey: "readtimeout")
+        guard let cgImage = CGImage(
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bitsPerPixel: 32,
+            bytesPerRow: width * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedFirst.rawValue),
+            provider: provider,
+            decode: nil,
+            shouldInterpolate: false,
+            intent: .defaultIntent
+        ) else { return nil }
         
-        // 图像相关配置
-        options?.setPlayerOptionIntValue(Int64(PreferredImageTypeJPEG.rawValue), forKey: "preferred-image-type")
-        options?.setPlayerOptionIntValue(1, forKey: "image-quality-min")
-        options?.setPlayerOptionIntValue(1, forKey: "image-quality-max")
+        return UIImage(cgImage: cgImage)
+    }
+    
+    private func createYUVImage(from frameData: Data, width: Int, height: Int) -> UIImage? {
+        let ySize = width * height
+        let uvSize = (width * height) / 4
         
-        // 视频相关配置
-        options?.setPlayerOptionIntValue(Int64(PreferredVideoTypeH264.rawValue), forKey: "preferred-video-type")
-        options?.setPlayerOptionIntValue(1, forKey: "video-need-transcoding")
-        options?.setPlayerOptionIntValue(Int64(MjpegPixFmtYUVJ420P.rawValue), forKey: "mjpeg-pix-fmt")
+        guard frameData.count >= ySize + (uvSize * 2) else {
+            print("HYEYE: YUV 数据大小不正确")
+            return nil
+        }
         
-        // 视频质量设置
-        options?.setPlayerOptionIntValue(2, forKey: "video-quality-min")
-        options?.setPlayerOptionIntValue(20, forKey: "video-quality-max")
+        // 创建 CVPixelBuffer
+        var pixelBuffer: CVPixelBuffer?
+        let attrs = [
+            kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+            kCVPixelBufferWidthKey: width,
+            kCVPixelBufferHeightKey: height,
+            kCVPixelBufferMetalCompatibilityKey: true
+        ] as CFDictionary
         
-        // H264编码配置
-        options?.setPlayerOptionIntValue(Int64(X264OptionPresetUltrafast.rawValue), forKey: "x264-option-preset")
-        options?.setPlayerOptionIntValue(Int64(X264OptionTuneZerolatency.rawValue), forKey: "x264-option-tune")
-        options?.setPlayerOptionIntValue(Int64(X264OptionProfileMain.rawValue), forKey: "x264-option-profile")
-        options?.setPlayerOptionValue("crf=23", forKey: "x264-params")
+        CVPixelBufferCreate(kCFAllocatorDefault,
+                           width,
+                           height,
+                           kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+                           attrs,
+                           &pixelBuffer)
         
-        // 自动丢帧和错误处理
-        options?.setPlayerOptionIntValue(3, forKey: "auto-drop-record-frame")
-        options?.setCodecOptionValue("explode", forKey: "err_detect")
+        guard let buffer = pixelBuffer else {
+            print("HYEYE: 创建 PixelBuffer 失败")
+            return nil
+        }
         
-        // 创建播放器
-        let player = IJKFFMoviePlayerController(contentURL: url, with: options)
-        player?.shouldAutoplay = true
-        player?.scalingMode = .fill
-        player?.shouldShowHudView = true
+        CVPixelBufferLockBaseAddress(buffer, [])
+        defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
         
-        #if DEBUG
-        IJKFFMoviePlayerController.setLogReport(true)
-        IJKFFMoviePlayerController.setLogLevel(k_IJK_LOG_INFO)
-        #else
-        IJKFFMoviePlayerController.setLogReport(false)
-        IJKFFMoviePlayerController.setLogLevel(k_IJK_LOG_SILENT)
-        #endif
+        // 复制 Y 平面数据
+        let yData = frameData.subdata(in: 0..<ySize)
+        let yAddress = CVPixelBufferGetBaseAddressOfPlane(buffer, 0)
+        yData.copyBytes(to: yAddress!.assumingMemoryBound(to: UInt8.self), count: ySize)
         
-        return player
+        // 复制 UV 平面数据
+        let uvData = frameData.subdata(in: ySize..<(ySize + uvSize * 2))
+        let uvAddress = CVPixelBufferGetBaseAddressOfPlane(buffer, 1)
+        uvData.copyBytes(to: uvAddress!.assumingMemoryBound(to: UInt8.self), count: uvSize * 2)
+        
+        // 创建 CIImage
+        let ciImage = CIImage(cvPixelBuffer: buffer)
+        
+        // 转换为 UIImage
+        let context = CIContext(options: nil)
+        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
+            print("HYEYE: 创建 CGImage 失败")
+            return nil
+        }
+        
+        return UIImage(cgImage: cgImage)
     }
 }

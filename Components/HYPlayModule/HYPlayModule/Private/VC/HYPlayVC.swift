@@ -68,6 +68,8 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         view.backgroundColor = .black
         view.addSubview(btnPlay)
         view.addSubview(labPlayStatus)
+        view.addSubview(btnPhoto)
+        view.addSubview(labPhotoCount)
         
         btnPlay.snp.makeConstraints { make in
             make.center.equalToSuperview()
@@ -76,6 +78,16 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         labPlayStatus.snp.makeConstraints { make in
             make.top.equalTo(btnPlay.snp.bottom).offset(20)
             make.centerX.equalToSuperview()
+        }
+        
+        btnPhoto.snp.makeConstraints { make in
+            make.top.equalTo(btnPlay.snp.top)
+            make.left.equalTo(btnPlay.snp.right).offset(20)
+        }
+        
+        labPhotoCount.snp.makeConstraints { make in
+            make.top.equalTo(btnPhoto.snp.bottom).offset(10)
+            make.centerX.equalTo(btnPhoto)
         }
     }
     
@@ -97,10 +109,15 @@ class HYPlayVC: HYBaseViewControllerMVVM {
             })
             .disposed(by: disposeBag)
         
+        btnPhoto.rx.tap
+            .bind(to: vm.photoTrigger)
+            .disposed(by: disposeBag)
+        
         return HYPlayVM.Input(
             openVideoTrigger: vm.openVideoTrigger,
             playTrigger: vm.playTrigger,
-            stopTrigger: vm.stopTrigger
+            stopTrigger: vm.stopTrigger,
+            photoTrigger: vm.photoTrigger
         )
     }
     
@@ -130,12 +147,17 @@ class HYPlayVC: HYBaseViewControllerMVVM {
                 self?.player?.play()
             })
             .disposed(by: disposeBag)
+        
+        // 照片计数显示
+        output.photoCount
+            .drive(labPhotoCount.rx.text)
+            .disposed(by: disposeBag)
     }
     
     // MARK: - Private Methods
     private func startPlayback() {
         guard let playUrl = playUrl,
-                let url = URL(string: playUrl) else {
+              let url = URL(string: playUrl) else {
             return
         }
         
@@ -208,6 +230,16 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         }
     }
     
+    private func handleError(_ error: Error) {
+        let alert = UIAlertController(
+            title: "错误".stLocalLized,
+            message: error.localizedDescription,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "确定".stLocalLized, style: .default))
+        present(alert, animated: true)
+    }
+    
     // MARK: - Lazy Properties
     private lazy var labPlayStatus: UILabel = {
         UILabel().then {
@@ -225,6 +257,37 @@ class HYPlayVC: HYBaseViewControllerMVVM {
             $0.layer.cornerRadius = 5
             $0.contentEdgeInsets = UIEdgeInsets(top: 10, left: 20, bottom: 10, right: 20)
         }
+    }()
+    
+    private lazy var btnPhoto: UIButton = {
+        UIButton(type: .custom).then {
+            $0.setTitle("Photo".stLocalLized, for: .normal)
+            $0.setTitleColor(.white, for: .normal)
+            $0.backgroundColor = .darkGray
+            $0.layer.cornerRadius = 5
+            $0.contentEdgeInsets = UIEdgeInsets(top: 10, left: 20, bottom: 10, right: 20)
+        }
+    }()
+    
+    private lazy var labPhotoCount: UILabel = {
+        UILabel().then {
+            $0.textColor = .white
+            $0.font = .systemFont(ofSize: 14)
+            $0.textAlignment = .center
+        }
+    }()
+    
+    private lazy var activityIndicator: UIActivityIndicatorView = {
+        let style: UIActivityIndicatorView.Style
+        if #available(iOS 13.0, *) {
+            style = .large
+        } else {
+            style = .whiteLarge
+        }
+        let indicator = UIActivityIndicatorView(style: style)
+        indicator.color = .white
+        indicator.hidesWhenStopped = true
+        return indicator
     }()
 }
 
