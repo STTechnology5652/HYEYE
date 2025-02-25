@@ -20,6 +20,10 @@ public protocol HYEYEDelegate: AnyObject {
     func playbackStateDidChange(_ state: IJKMPMoviePlaybackState)
     func playbackDidFinishWithError(_ error: HYEYE.PlaybackError)
     func playbackDidPrepared()
+    func playbackFirstFrameRendered()
+    func recordingStateDidChange(isRecording: Bool, path: String?)
+    func didCaptureImage(_ image: UIImage)
+    func captureProgressDidUpdate(current: Int, total: Int)
 }
 
 public class HYEYE: NSObject {
@@ -36,6 +40,7 @@ public class HYEYE: NSObject {
     
     private var disposeBag = DisposeBag()
     private var player: IJKFFMoviePlayerController?
+    private var currentUrl: URL?
     
     public weak var delegate: HYEYEDelegate?
     
@@ -43,7 +48,40 @@ public class HYEYE: NSObject {
     private var lastProgressUpdate: TimeInterval = 0
     private let progressUpdateInterval: TimeInterval = 0.1
     
+    // 录制相关属性
+    private var isRecording = false
+    private var currentRecordingPath: String?
+    public let recordingStateChanged = PublishRelay<(isRecording: Bool, path: String?)>()
+    
     // MARK: - Public Methods
+    public func play() {
+        player?.play()
+    }
+    
+    public func stop() {
+        player?.stop()
+    }
+    
+    public func shutdown() {
+        player?.shutdown()
+    }
+    
+    public func checkPreparedToPlay() -> Bool {
+        return player?.isPreparedToPlay ?? false
+    }
+    
+    public func checkIsPlaying() -> Bool {
+        return player?.isPlaying() ?? false
+    }
+    
+    public func prepareToPlay() {
+        player?.prepareToPlay()
+    }
+    
+    public func currentPlaybackUrl() -> URL? {
+        return currentUrl
+    }
+    
     public static func openVideo(url: URL) -> IJKFFMoviePlayerController? {
         return HYEYE.sharedInstance.openVideo(url: url)
     }
@@ -84,6 +122,7 @@ public class HYEYE: NSObject {
         // 设置后台播放
         player?.setPauseInBackground(false)
         
+        print("start play video: \(url)")
         self.player = player
         return player
     }
@@ -116,24 +155,19 @@ public class HYEYE: NSObject {
             return
         }
         
-        // 使用 thumbnailImageAtCurrentTime 方法进行截图
         if let image = player.thumbnailImageAtCurrentTime() {
-            // 保存图片
             if let savePath = config.savePath {
                 saveToFile(image: image, path: savePath, quality: config.imageQuality)
             } else {
                 PHPhotoLibrary.requestAuthorization { [weak self] status in
-                    guard let self = self else { return }
-                    
                     if status == .authorized {
-                        self.saveToPhotoLibrary(image: image, quality: config.imageQuality)
+                        self?.saveToPhotoLibrary(image: image, quality: config.imageQuality)
                     }
                     progressCallback(1, 1)
                 }
             }
             
-            // 发送截图结果
-            capturedImage.accept(image)
+            delegate?.didCaptureImage(image)
             progressCallback(1, 1)
         } else {
             print("HYEYE: 截图失败")
@@ -174,6 +208,52 @@ public class HYEYE: NSObject {
             }
         }
     }
+    
+    // MARK: - Video Recording
+    public func startRecording(fileName: String? = nil) -> String? {
+        guard let player = player, !isRecording else {
+            print("HYEYE: 录制失败 - 播放器未就绪或已在录制中")
+            return nil
+        }
+        
+        guard let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true).first else {
+            print("HYEYE: 获取 Documents 目录失败")
+            return nil
+        }
+        
+        let videoDirectory = (documentsPath as NSString).appendingPathComponent("Videos")
+        try? FileManager.default.createDirectory(atPath: videoDirectory, withIntermediateDirectories: true)
+        
+        let timestamp = Int(Date().timeIntervalSince1970)
+        let videoFileName = fileName ?? "VID_\(timestamp).mp4"
+        let videoPath = (videoDirectory as NSString).appendingPathComponent(videoFileName)
+        
+        player.startRecordVideo(atPath: videoDirectory, withFileName: videoFileName, width: 0, height: 0)
+        
+        isRecording = true
+        currentRecordingPath = videoPath
+        delegate?.recordingStateDidChange(isRecording: true, path: videoPath)
+        
+        return videoPath
+    }
+    
+    public func stopRecording() {
+        guard let player = player, isRecording else { return }
+        
+        player.stopRecordVideo()
+        isRecording = false
+        let path = currentRecordingPath
+        currentRecordingPath = nil
+        delegate?.recordingStateDidChange(isRecording: false, path: path)
+    }
+    
+    public var isVideoRecording: Bool {
+        return isRecording
+    }
+    
+    public var currentVideoPath: String? {
+        return currentRecordingPath
+    }
 }
 
 // MARK: - IJKFFMoviePlayerDelegate
@@ -187,25 +267,25 @@ extension HYEYE: IJKFFMoviePlayerDelegate {
     }
     
     public func playerDidTakePicture(_ player: IJKFFMoviePlayerController, resultCode: Int32, fileName: String) {
-        print("HYEYE: 拍照完成 - 文件名: \(fileName), 结果码: \(resultCode)")
-        
-        if resultCode == 0 {
-            if let image = UIImage(contentsOfFile: fileName) {
-                capturedImage.accept(image)
-            }
-        } else {
-            print("HYEYE: 截图失败，错误码: \(resultCode)")
+        if resultCode == 0, let image = UIImage(contentsOfFile: fileName) {
+            delegate?.didCaptureImage(image)
         }
     }
     
     public func player(onNotifyDeviceConnected player: IJKFFMoviePlayerController) {
         print("HYEYE: 设备已连接")
     }
+    
+    public func playerDidRecordVideo(_ player: IJKFFMoviePlayerController, resultCode: Int32, fileName: String) {
+        isRecording = false
+        currentRecordingPath = nil
+        delegate?.recordingStateDidChange(isRecording: false, path: fileName)
+    }
 }
 
 // MARK: - Notification Handling
 extension HYEYE {
-    private func registNotice() -> Self {
+    private func registNotice() {
         NotificationCenter.default.addObserver(self,
                                              selector: #selector(mediaIsPreparedToPlayDidChange(_:)),
                                              name: .IJKMPMediaPlaybackIsPreparedToPlayDidChange,
@@ -231,8 +311,6 @@ extension HYEYE {
                                              selector: #selector(applicationDidBecomeActive(_:)),
                                              name: UIApplication.didBecomeActiveNotification,
                                              object: nil)
-        
-        return self
     }
     
     @objc private func mediaIsPreparedToPlayDidChange(_ notification: Notification) {
@@ -249,7 +327,7 @@ extension HYEYE {
     }
     
     @objc private func moviePlayerFirstVideoFrameRendered(_ notification: Notification) {
-        firstFrameRendered.accept(())
+        delegate?.playbackFirstFrameRendered()
     }
     
     @objc private func applicationWillResignActive(_ notification: Notification) {

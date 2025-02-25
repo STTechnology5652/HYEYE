@@ -9,48 +9,108 @@ import HYAllBase
 import HYEYE
 
 class HYPlayVC: HYBaseViewControllerMVVM {
-    // MARK: - Protocol Properties
+    // MARK: - Protocol Conformance
+    var viewModel: ViewModelType { return vm }
+    
+    // MARK: - Properties
     internal var vm: HYPlayVM = HYPlayVM()
     internal var disposeBag = DisposeBag()
     
-    // MARK: - Private Properties
     private let playUrl: String?
     private var player: IJKFFMoviePlayerController?
     private var playerContainerView: UIView?
     
-    // MARK: - Initialization
+    // 触发器
+    private let openVideoTrigger = PublishRelay<String?>()
+    private let closeVideoTrigger = PublishRelay<Void>()
+    private let playTrigger = PublishRelay<Void>()
+    private let stopTrigger = PublishRelay<Void>()
+    private let photoTrigger = PublishRelay<Void>()
+    
+    // MARK: - UI Components
+    private lazy var controlsView: UIStackView = {
+        let stack = UIStackView(arrangedSubviews: [btnPlay, btnPhoto, recordButton])
+        stack.axis = .vertical
+        stack.spacing = 20
+        stack.distribution = .fillEqually
+        return stack
+    }()
+    
+    private lazy var labPlayStatus: UILabel = {
+        UILabel().then {
+            $0.textColor = .white
+            $0.font = .systemFont(ofSize: 14)
+            $0.textAlignment = .center
+        }
+    }()
+    
+    private lazy var btnPlay = UIButton(type: .custom).then {
+        $0.setTitle("Play", for: .normal)
+        $0.setTitle("Stop", for: .selected)
+        $0.backgroundColor = .darkGray
+        $0.layer.cornerRadius = 5
+    }
+    
+    private lazy var btnPhoto = UIButton(type: .custom).then {
+        $0.setTitle("Photo", for: .normal)
+        $0.backgroundColor = .darkGray
+        $0.layer.cornerRadius = 5
+    }
+    
+    private lazy var recordButton = UIButton(type: .custom).then {
+        $0.setTitle("Record", for: .normal)
+        $0.setTitle("Recording...", for: .selected)
+        $0.backgroundColor = .darkGray
+        $0.layer.cornerRadius = 5
+    }
+    
+    // MARK: - Lifecycle
     init(playUrl: String?) {
         self.playUrl = playUrl
         super.init(nibName: nil, bundle: nil)
     }
     
-    @MainActor required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
     
-    // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "HYPlayVC".stLocalLized
         setUpUI()
         bindData()
-    }
-    
-    override func viewDidLayoutSubviews() {
-        player?.view.frame = view.bounds
+        
+        // 设置按钮事件
+        btnPlay.rx.tap
+            .subscribe(onNext: { [weak self] in
+                if self?.player?.isPlaying() == true {
+                    self?.stopTrigger.accept(())
+                    self?.player?.stop()
+                } else {
+                    self?.playTrigger.accept(())
+                    self?.player?.play()
+                }
+            })
+            .disposed(by: disposeBag)
+        
+        btnPhoto.rx.tap
+            .subscribe(onNext: { [weak self] in
+                self?.photoTrigger.accept(())
+                if let image = self?.player?.thumbnailImageAtCurrentTime() {
+                    HYEYE.sharedInstance.capturedImage.accept(image)
+                }
+            })
+            .disposed(by: disposeBag)
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         if player == nil {
-            startPlayback()
+            openVideoTrigger.accept(playUrl)
         }
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         if isMovingFromParent {
-            stopPlayback()
+            closeVideoTrigger.accept(())
         }
     }
     
@@ -64,231 +124,186 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     }
     
     // MARK: - Protocol Methods
-    internal func setUpUI() {
-        view.backgroundColor = .black
-        view.addSubview(btnPlay)
-        view.addSubview(labPlayStatus)
-        view.addSubview(btnPhoto)
-        view.addSubview(labPhotoCount)
+    func bindData() {
+        let input = HYPlayVM.HYPlayVMInput(
+            openVideoUrl: openVideoTrigger.asObservable(),
+            closeVideo: closeVideoTrigger.asObservable(),
+            playTrigger: playTrigger.asObservable(),
+            stopTrigger: stopTrigger.asObservable(),
+            photoTrigger: photoTrigger.asObservable(),
+            recordTrigger: recordButton.rx.tap.asObservable()
+        )
         
-        btnPlay.snp.makeConstraints { make in
-            make.center.equalToSuperview()
-        }
+        let output = viewModel.transformInput(input)
         
-        labPlayStatus.snp.makeConstraints { make in
-            make.top.equalTo(btnPlay.snp.bottom).offset(20)
-            make.centerX.equalToSuperview()
-        }
-        
-        btnPhoto.snp.makeConstraints { make in
-            make.top.equalTo(btnPlay.snp.top)
-            make.left.equalTo(btnPlay.snp.right).offset(20)
-        }
-        
-        labPhotoCount.snp.makeConstraints { make in
-            make.top.equalTo(btnPhoto.snp.bottom).offset(10)
-            make.centerX.equalTo(btnPhoto)
-        }
-    }
-    
-    internal func bindData() {
-        guard let input = createInput() else { return }
-        let output = vm.transformInput(input)
-        subscribeOutput(output)
-    }
-    
-    private func createInput() -> HYPlayVM.Input? {
-        // 播放按钮点击事件
-        btnPlay.rx.tap
-            .bind(onNext: { [weak self] in
-                if self?.btnPlay.isSelected == true {
-                    self?.stopPlayback()
-                } else {
-                    self?.startPlayback()
+        // 处理播放器
+        output.player
+            .drive(onNext: { [weak self] player in
+                guard let self = self,
+                      let player = player else { return }
+                
+                // 清理现有播放器
+                if let oldPlayer = self.player {
+                    oldPlayer.view.removeFromSuperview()
+                    oldPlayer.shutdown()
+                    self.playerContainerView?.removeFromSuperview()
+                }
+                
+                // 创建容器视图
+                let containerView = UIView()
+                containerView.backgroundColor = .black
+                self.view.insertSubview(containerView, at: 0)
+                self.playerContainerView = containerView
+                
+                // 设置容器视图约束
+                containerView.snp.makeConstraints { make in
+                    make.edges.equalToSuperview()
+                }
+                
+                // 添加播放器视图
+                containerView.addSubview(player.view)
+                player.view.snp.makeConstraints { make in
+                    make.edges.equalToSuperview()
+                }
+                
+                self.player = player
+                self.playTrigger.accept(())
+                
+                // 延迟准备播放
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    player.prepareToPlay()
                 }
             })
             .disposed(by: disposeBag)
         
-        btnPhoto.rx.tap
-            .bind(to: vm.photoTrigger)
-            .disposed(by: disposeBag)
-        
-        return HYPlayVM.Input(
-            openVideoTrigger: vm.openVideoTrigger,
-            playTrigger: vm.playTrigger,
-            stopTrigger: vm.stopTrigger,
-            photoTrigger: vm.photoTrigger
-        )
-    }
-    
-    private func subscribeOutput(_ output: HYPlayVM.Output) {
-        // 播放状态
         output.videoPlaying
-            .drive(onNext: { [weak self] playing in
-                self?.btnPlay.isSelected = playing
-                self?.btnPlay.setTitle(playing ? "Stop".stLocalLized : "Play".stLocalLized, 
-                                     for: .normal)
-            })
+            .drive(btnPlay.rx.isSelected)
             .disposed(by: disposeBag)
         
-        // 播放状态文本
         output.playStatus
             .drive(labPlayStatus.rx.text)
             .disposed(by: disposeBag)
         
-        // 错误处理
         output.error
-            .drive(labPlayStatus.rx.text)
+            .drive(onNext: { [weak self] errorMessage in
+                self?.showErrorAlert(errorMessage)
+            })
             .disposed(by: disposeBag)
         
-        // 监听是否应该开始播放
         output.shouldPlay
             .drive(onNext: { [weak self] in
                 self?.player?.play()
             })
             .disposed(by: disposeBag)
         
-        // 照片计数显示
-        output.photoCount
-            .drive(labPhotoCount.rx.text)
+        output.isRecording
+            .drive(recordButton.rx.isSelected)
             .disposed(by: disposeBag)
+        
+        output.recordingPath
+            .drive(onNext: { [weak self] path in
+                guard let path = path else { return }
+                self?.showRecordingFinishedAlert(path: path)
+            })
+            .disposed(by: disposeBag)
+    }
+    
+    func setUpUI() {
+        view.backgroundColor = .black
+        
+        view.addSubview(controlsView)
+        view.addSubview(labPlayStatus)
+        
+        controlsView.snp.makeConstraints { make in
+            make.centerY.equalToSuperview()
+            make.right.equalToSuperview().offset(-20)
+            make.width.equalTo(120)
+        }
+        
+        labPlayStatus.snp.makeConstraints { make in
+            make.bottom.equalToSuperview().offset(-20)
+            make.centerX.equalToSuperview()
+        }
     }
     
     // MARK: - Private Methods
     private func startPlayback() {
         guard let playUrl = playUrl,
-              let url = URL(string: playUrl) else {
-            return
+              let url = URL(string: playUrl) else { 
+            print("HYEYE: 无效的播放URL")
+            return 
         }
         
-        if let player {
+        // 清理现有播放器
+        if let player = player {
             player.view.removeFromSuperview()
             player.shutdown()
             playerContainerView?.removeFromSuperview()
         }
         
+        // 创建新的播放器
         if let newPlayer = HYEYE.openVideo(url: url) {
-            // 1. 先设置视图
+            // 创建容器视图
             let containerView = UIView()
             containerView.backgroundColor = .black
-            view.insertSubview(containerView, at: 0)
+            view.insertSubview(containerView, at: 0) // 插入到最底层
             playerContainerView = containerView
+            
+            // 设置容器视图约束
             containerView.snp.makeConstraints { make in
                 make.edges.equalToSuperview()
             }
             
-            // 设置播放器视图
+            // 添加播放器视图
             containerView.addSubview(newPlayer.view)
             newPlayer.view.snp.makeConstraints { make in
                 make.edges.equalToSuperview()
             }
-
-            // 2. 设置播放器
+            
             player = newPlayer
+            playTrigger.accept(())
             
-            // 3. 触发播放事件
-            vm.playTrigger.accept(())
-            
-            // 4. 等待视图准备好再开始播放
+            // 延迟准备播放，确保视图已经布局完成
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 self?.player?.prepareToPlay()
             }
+        } else {
+            print("HYEYE: 创建播放器失败")
         }
     }
     
     private func stopPlayback() {
-        // 触发停止事件
-        vm.stopTrigger.accept(())
-        
-        // 先移除通知监听
+        stopTrigger.accept(())
         NotificationCenter.default.removeObserver(self)
-        
-        // 停止播放
         player?.stop()
         
-        // 移除视图 - 先获取父视图
         let containerView = player?.view.superview
         player?.view.removeFromSuperview()
         containerView?.removeFromSuperview()
         
-        // 关闭播放器
         player?.shutdown()
         player = nil
     }
     
-    private func showError(_ message: String) {
-        DispatchQueue.main.async { [weak self] in
-            self?.labPlayStatus.text = message
-            self?.btnPlay.isSelected = false
-        }
-    }
-    
-    private func doReconnect() {
-        DispatchQueue.main.async { [weak self] in
-            self?.stopPlayback()
-            self?.startPlayback()
-        }
-    }
-    
-    private func handleError(_ error: Error) {
+    private func showErrorAlert(_ message: String) {
         let alert = UIAlertController(
             title: "错误".stLocalLized,
-            message: error.localizedDescription,
+            message: message,
             preferredStyle: .alert
         )
         alert.addAction(UIAlertAction(title: "确定".stLocalLized, style: .default))
         present(alert, animated: true)
     }
     
-    // MARK: - Lazy Properties
-    private lazy var labPlayStatus: UILabel = {
-        UILabel().then {
-            $0.textColor = .white
-            $0.font = .systemFont(ofSize: 14)
-            $0.textAlignment = .center
-        }
-    }()
-    
-    private lazy var btnPlay: UIButton = {
-        UIButton(type: .custom).then {
-            $0.setTitle("Play".stLocalLized, for: .normal)
-            $0.setTitleColor(.white, for: .normal)
-            $0.backgroundColor = .darkGray
-            $0.layer.cornerRadius = 5
-            $0.contentEdgeInsets = UIEdgeInsets(top: 10, left: 20, bottom: 10, right: 20)
-        }
-    }()
-    
-    private lazy var btnPhoto: UIButton = {
-        UIButton(type: .custom).then {
-            $0.setTitle("Photo".stLocalLized, for: .normal)
-            $0.setTitleColor(.white, for: .normal)
-            $0.backgroundColor = .darkGray
-            $0.layer.cornerRadius = 5
-            $0.contentEdgeInsets = UIEdgeInsets(top: 10, left: 20, bottom: 10, right: 20)
-        }
-    }()
-    
-    private lazy var labPhotoCount: UILabel = {
-        UILabel().then {
-            $0.textColor = .white
-            $0.font = .systemFont(ofSize: 14)
-            $0.textAlignment = .center
-        }
-    }()
-    
-    private lazy var activityIndicator: UIActivityIndicatorView = {
-        let style: UIActivityIndicatorView.Style
-        if #available(iOS 13.0, *) {
-            style = .large
-        } else {
-            style = .whiteLarge
-        }
-        let indicator = UIActivityIndicatorView(style: style)
-        indicator.color = .white
-        indicator.hidesWhenStopped = true
-        return indicator
-    }()
+    private func showRecordingFinishedAlert(path: String) {
+        let alert = UIAlertController(
+            title: "Recording Finished",
+            message: "Video saved to:\n\(path)",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
+    }
 }
 
 // MARK: - UI methods
