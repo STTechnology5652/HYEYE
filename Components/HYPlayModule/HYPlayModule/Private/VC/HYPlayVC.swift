@@ -24,6 +24,7 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     private let openVideoTrigger = PublishRelay<String?>()
     private let closeVideoTrigger = PublishRelay<Void>()
     private let playTrigger = PublishRelay<Void>()
+    private let prepareToPlayTrigger = PublishRelay<Void>()
     private let stopTrigger = PublishRelay<Void>()
     private let photoTrigger = PublishRelay<Void>()
     
@@ -74,35 +75,25 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        setUpUI()
-        bindData()
+        print("viewDidLoad")
         
         // 设置按钮事件
         btnPlay.rx.tap
             .subscribe(onNext: { [weak self] in
                 if self?.player?.isPlaying() == true {
                     self?.stopTrigger.accept(())
-                    self?.player?.stop()
                 } else {
                     self?.playTrigger.accept(())
-                    self?.player?.play()
-                }
-            })
-            .disposed(by: disposeBag)
-        
-        btnPhoto.rx.tap
-            .subscribe(onNext: { [weak self] in
-                self?.photoTrigger.accept(())
-                if let image = self?.player?.thumbnailImageAtCurrentTime() {
-                    HYEYE.sharedInstance.capturedImage.accept(image)
                 }
             })
             .disposed(by: disposeBag)
     }
     
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
         if player == nil {
+            print("viewWillAppear - trigger openVideo with url: \(playUrl ?? "nil")")
             openVideoTrigger.accept(playUrl)
         }
     }
@@ -125,9 +116,11 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     
     // MARK: - Protocol Methods
     func bindData() {
+        print("bindData")
         let input = HYPlayVM.HYPlayVMInput(
             openVideoUrl: openVideoTrigger.asObservable(),
             closeVideo: closeVideoTrigger.asObservable(),
+            prepareToPlayTrigger: prepareToPlayTrigger.asObservable(),
             playTrigger: playTrigger.asObservable(),
             stopTrigger: stopTrigger.asObservable(),
             photoTrigger: photoTrigger.asObservable(),
@@ -137,7 +130,7 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         let output = viewModel.transformInput(input)
         
         // 处理播放器
-        output.player
+        output.playerCreated
             .drive(onNext: { [weak self] player in
                 guard let self = self,
                       let player = player else { return }
@@ -167,11 +160,9 @@ class HYPlayVC: HYBaseViewControllerMVVM {
                 }
                 
                 self.player = player
-                self.playTrigger.accept(())
-                
                 // 延迟准备播放
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    player.prepareToPlay()
+                    self.prepareToPlayTrigger.accept(())
                 }
             })
             .disposed(by: disposeBag)
@@ -226,52 +217,6 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         }
     }
     
-    // MARK: - Private Methods
-    private func startPlayback() {
-        guard let playUrl = playUrl,
-              let url = URL(string: playUrl) else { 
-            print("HYEYE: 无效的播放URL")
-            return 
-        }
-        
-        // 清理现有播放器
-        if let player = player {
-            player.view.removeFromSuperview()
-            player.shutdown()
-            playerContainerView?.removeFromSuperview()
-        }
-        
-        // 创建新的播放器
-        if let newPlayer = HYEYE.openVideo(url: url) {
-            // 创建容器视图
-            let containerView = UIView()
-            containerView.backgroundColor = .black
-            view.insertSubview(containerView, at: 0) // 插入到最底层
-            playerContainerView = containerView
-            
-            // 设置容器视图约束
-            containerView.snp.makeConstraints { make in
-                make.edges.equalToSuperview()
-            }
-            
-            // 添加播放器视图
-            containerView.addSubview(newPlayer.view)
-            newPlayer.view.snp.makeConstraints { make in
-                make.edges.equalToSuperview()
-            }
-            
-            player = newPlayer
-            playTrigger.accept(())
-            
-            // 延迟准备播放，确保视图已经布局完成
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.player?.prepareToPlay()
-            }
-        } else {
-            print("HYEYE: 创建播放器失败")
-        }
-    }
-    
     private func stopPlayback() {
         stopTrigger.accept(())
         NotificationCenter.default.removeObserver(self)
@@ -304,9 +249,4 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
     }
-}
-
-// MARK: - UI methods
-extension HYPlayVC {
-    
 }

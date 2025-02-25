@@ -22,10 +22,27 @@ class HYPlayVM: STViewModelProtocol {
     private var retryCount: Int = 0
     private let maxRetryCount: Int = 3
     
+    private let playStatusRelay = BehaviorRelay<String>(value: "")
+    private let errorRelay = PublishRelay<String>()
+    private let playingRelay = BehaviorRelay<Bool>(value: false)
+    
+    private let preparedToPlayRelay = PublishRelay<Void>()
+    
+    deinit {
+        disposeBag = DisposeBag()
+        HYEYE.sharedInstance.shutdown()
+    }
+    
+    init() {
+        // 设置 delegate
+        HYEYE.sharedInstance.delegate = self
+    }
+    
     // MARK: - Input & Output
     struct HYPlayVMInput {
         let openVideoUrl: Observable<String?>
         let closeVideo: Observable<Void>
+        let prepareToPlayTrigger: Observable<Void>
         let playTrigger: Observable<Void>
         let stopTrigger: Observable<Void>
         let photoTrigger: Observable<Void>
@@ -39,25 +56,63 @@ class HYPlayVM: STViewModelProtocol {
         let shouldPlay: Driver<Void>
         let isRecording: Driver<Bool>
         let recordingPath: Driver<String?>
-        let player: Driver<IJKFFMoviePlayerController?>
+        let playerCreated: Driver<IJKFFMoviePlayerController?>
     }
     
     // MARK: - Transform
     func transformInput(_ input: HYPlayVMInput) -> HYPlayVMOutput {
-        let playStatusRelay = BehaviorRelay<String>(value: "")
-        let errorRelay = PublishRelay<String>()
+        print("transformInput")
+        
         let shouldPlayRelay = PublishRelay<Void>()
-        let playingRelay = BehaviorRelay<Bool>(value: false)
         let playerRelay = PublishRelay<IJKFFMoviePlayerController?>()
+        
+        // 处理准备播放
+        input.prepareToPlayTrigger
+            .subscribe(onNext: {
+                print("prepareToPlay execute")
+                HYEYE.sharedInstance.prepareToPlay()
+            })
+            .disposed(by: disposeBag)
+        
+        // 监听准备完成状态
+        preparedToPlayRelay
+            .subscribe(onNext: {
+                print("prepared to play, starting playback")
+                HYEYE.sharedInstance.play()
+            })
+            .disposed(by: disposeBag)
         
         // 处理开始播放
         input.openVideoUrl
-            .compactMap { $0 }
+            .compactMap { urlStr -> URL? in
+                guard let urlStr = urlStr,  // 首先确保 urlStr 不为空
+                      let url = URL(string: urlStr) else {
+                    print("HYEYE Error: Invalid URL string")
+                    return nil
+                }
+                return url
+            }
             .subscribe(onNext: { [weak self] url in
-                guard let url = URL(string: url) else { return }
-                if let player = HYEYE.openVideo(url: url) {
+                print("openVideoUrl execute: \(url)")
+                let eyeIns = HYEYE.sharedInstance
+                if let player = eyeIns.openVideo(url: url) {  // url 已经确定不为空
                     playerRelay.accept(player)
                 }
+            })
+            .disposed(by: disposeBag)
+        
+        input.stopTrigger
+            .subscribe(onNext: { [weak self] in
+                print("stopTrigger execute")
+                HYEYE.sharedInstance.pause()
+            })
+            .disposed(by: disposeBag)
+        
+        input.playTrigger
+            .throttle(.milliseconds(500), scheduler: MainScheduler.instance)  // 防止快速重复触发
+            .subscribe(onNext: { [weak self] in
+                print("start player")
+                HYEYE.sharedInstance.play()
             })
             .disposed(by: disposeBag)
         
@@ -65,38 +120,6 @@ class HYPlayVM: STViewModelProtocol {
         input.closeVideo
             .subscribe(onNext: { [weak self] in
                 self?.handleStopPlayback()
-            })
-            .disposed(by: disposeBag)
-        
-        // 监听播放状态
-        HYEYE.sharedInstance.playbackState
-            .subscribe(onNext: { [weak self] state in
-                guard let self = self else { return }
-                switch state {
-                case .playing:
-                    self.stateRelay.accept(.playing)
-                    playStatusRelay.accept("Playing".stLocalLized)
-                    playingRelay.accept(true)
-                case .stopped:
-                    self.stateRelay.accept(.stopped)
-                    playStatusRelay.accept("Stopped".stLocalLized)
-                    playingRelay.accept(false)
-                case .paused:
-                    self.stateRelay.accept(.paused)
-                    playStatusRelay.accept("Paused".stLocalLized)
-                    playingRelay.accept(false)
-                default:
-                    break
-                }
-            })
-            .disposed(by: disposeBag)
-        
-        // 监听错误
-        HYEYE.sharedInstance.playbackError
-            .subscribe(onNext: { [weak self] error in
-                guard let self = self else { return }
-                errorRelay.accept(error.description)
-                self.handlePlaybackError()
             })
             .disposed(by: disposeBag)
         
@@ -115,19 +138,18 @@ class HYPlayVM: STViewModelProtocol {
             shouldPlay: shouldPlayRelay.asDriver(onErrorJustReturn: ()),
             isRecording: recordingState.asDriver(),
             recordingPath: recordingPathRelay.asDriver(onErrorJustReturn: nil),
-            player: playerRelay.asDriver(onErrorJustReturn: nil)
+            playerCreated: playerRelay.asDriver(onErrorJustReturn: nil)
         )
     }
     
     // MARK: - Private Methods
     private func handleStartPlayback(url: String) {
         guard let url = URL(string: url) else { return }
-        _ = HYEYE.openVideo(url: url)
+        _ = HYEYE.sharedInstance.openVideo(url: url)
     }
     
     private func handleStopPlayback() {
-        HYEYE.sharedInstance.stop()
-        HYEYE.sharedInstance.shutdown()
+        HYEYE.sharedInstance.pause()
     }
     
     private func handleRecordingTrigger(isRecording: Bool) {
@@ -177,5 +199,49 @@ enum PlaybackState: Equatable {
             return false
         }
     }
+}
+
+// 添加 delegate 实现
+extension HYPlayVM: HYEYEDelegate {
+    func playbackStateDidChange(_ state: IJKMPMoviePlaybackState) {
+        print("HYEYE: Playback state changed to: \(state.rawValue)")
+        
+        switch state {
+        case .playing:
+            stateRelay.accept(.playing)
+            playStatusRelay.accept("Playing".stLocalLized)
+            playingRelay.accept(true)
+            retryCount = 0  // 重置重试计数
+        case .stopped:
+            stateRelay.accept(.stopped)
+            playStatusRelay.accept("Stopped".stLocalLized)
+            playingRelay.accept(false)
+        case .paused:
+            stateRelay.accept(.paused)
+            playStatusRelay.accept("Paused".stLocalLized)
+            playingRelay.accept(false)
+        case .interrupted:
+            print("HYEYE Error: Playback interrupted")
+            handlePlaybackError()
+        default:
+            break
+        }
+    }
+    
+    func playbackDidFinishWithError(_ error: HYEYE.PlaybackError) {
+        print("HYEYE Error: Playback finished with error - \(error.description)")
+        errorRelay.accept(error.description)
+        handlePlaybackError()
+    }
+    
+    func playbackDidPrepared() {
+        print("HYEYE: Playback prepared, triggering play")
+        HYEYE.sharedInstance.play()
+    }
+    
+    func playbackFirstFrameRendered() {}
+    func recordingStateDidChange(isRecording: Bool, path: String?) {}
+    func didCaptureImage(_ image: UIImage) {}
+    func captureProgressDidUpdate(current: Int, total: Int) {}
 }
 

@@ -7,13 +7,11 @@
 
 @_exported import IJKMediaFramework
 import IJKMediaFramework.IJKFFOptions
-import RxCocoa
-import RxSwift
 import Photos
 import AVFoundation
 
 public protocol HYEYEProtocol {
-    static func openVideo(url: URL) -> IJKFFMoviePlayerController?
+    func openVideo(url: URL) -> IJKFFMoviePlayerController?
 }
 
 public protocol HYEYEDelegate: AnyObject {
@@ -28,21 +26,12 @@ public protocol HYEYEDelegate: AnyObject {
 
 public class HYEYE: NSObject {
     // MARK: - Properties
-    public static let sharedInstance = HYEYE()
+    public static let sharedInstance = HYEYE().priInit()
+    public weak var delegate: HYEYEDelegate?
     
-    // Rx Signals
-    public let playbackState = PublishRelay<IJKMPMoviePlaybackState>()
-    public let playbackError = PublishRelay<PlaybackError>()
-    public let firstFrameRendered = PublishRelay<Void>()
-    public let isPreparedToPlay = PublishRelay<Bool>()
-    public let capturedImage = PublishRelay<UIImage>()
-    public let captureProgress = PublishRelay<(current: Int, total: Int)>()
-    
-    private var disposeBag = DisposeBag()
     private var player: IJKFFMoviePlayerController?
     private var currentUrl: URL?
-    
-    public weak var delegate: HYEYEDelegate?
+    private var isPraperedToPlay: Bool = false
     
     // 进度相关属性
     private var lastProgressUpdate: TimeInterval = 0
@@ -51,19 +40,53 @@ public class HYEYE: NSObject {
     // 录制相关属性
     private var isRecording = false
     private var currentRecordingPath: String?
-    public let recordingStateChanged = PublishRelay<(isRecording: Bool, path: String?)>()
+    
+    private var lastError: Error?
+    
+    // 重试相关属性
+    private var prepareRetryCount = 0
+    private let maxPrepareRetryCount = 3
+    
+    private func priInit() -> HYEYE {
+        registNotice()
+        return self
+    }
     
     // MARK: - Public Methods
     public func play() {
-        player?.play()
+        guard let player else {
+            print("HYEYE Error: player is nil")
+            handlePlaybackError(.playbackFailed)
+            return
+        }
+        
+        if !player.isPreparedToPlay {
+            print("HYEYE: player not prepared, preparing first")
+            player.prepareToPlay()
+        } else {
+            print("HYEYE: starting playback")
+            player.play()
+        }
     }
     
-    public func stop() {
-        player?.stop()
+    public func pause() {
+        guard let player else { return }
+        print("HYEYE: stopping playback")
+        
+        // 先暂停播放
+        player.pause()
+        
+        // 检查停止是否成功
+        if player.playbackState != .stopped {
+            print("HYEYE Error: Failed to stop playback")
+        }
     }
     
     public func shutdown() {
-        player?.shutdown()
+        guard let player else { return }
+        print("HYEYE: shutting down player")
+        player.shutdown()
+        self.player = nil
     }
     
     public func checkPreparedToPlay() -> Bool {
@@ -75,56 +98,73 @@ public class HYEYE: NSObject {
     }
     
     public func prepareToPlay() {
-        player?.prepareToPlay()
+        guard let player else {
+            print("HYEYE Error: player is nil")
+            handlePlaybackError(.playbackFailed)
+            return
+        }
+        
+        print("HYEYE: preparing to play")
+        
+        // 确保播放器处于正确状态
+        if player.playbackState == .playing {
+            player.stop()
+        }
+        
+        isPraperedToPlay = true
+        player.prepareToPlay()
     }
     
     public func currentPlaybackUrl() -> URL? {
         return currentUrl
     }
     
-    public static func openVideo(url: URL) -> IJKFFMoviePlayerController? {
-        return HYEYE.sharedInstance.openVideo(url: url)
-    }
-    
-    override init() {
-        super.init()
-        setupAudioSession()
-        registNotice()
-    }
-    
-    private func setupAudioSession() {
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
-            print("HYEYE: 设置音频会话失败: \(error.localizedDescription)")
+    public func openVideo(url: URL) -> IJKFFMoviePlayerController? {
+        print("HYEYE: opening video with url: \(url)")
+        
+        // 如果已有播放器实例，先关闭它
+        if let existingPlayer = player {
+            existingPlayer.shutdown()
+            self.player = nil
         }
-    }
-    
-    private func openVideo(url: URL) -> IJKFFMoviePlayerController? {
+        
+        // 创建新的播放器实例
         let options = IJKFFOptions.byDefault()
         
-        // 基础配置
-        options?.setPlayerOptionIntValue(Int64(RtpJpegParsePacketMethodDrop.rawValue), forKey: "rtp-jpeg-parse-packet-method")
-        options?.setPlayerOptionIntValue(5000 * 1000, forKey: "readtimeout")
+        // 添加 MJPEG 相关配置
+        options?.setPlayerOptionIntValue(1, forKey: "rtp-jpeg-parse-packet-method")
+        options?.setPlayerOptionIntValue(0, forKey: "videotoolbox") // 关闭硬解码
+        options?.setPlayerOptionIntValue(1, forKey: "framedrop") // 允许丢帧
+        options?.setPlayerOptionIntValue(15, forKey: "max-fps") // 限制最大帧率
+        
+        // 设置缓冲区大小
+        options?.setPlayerOptionIntValue(1, forKey: "packet-buffering")
+        options?.setPlayerOptionIntValue(10, forKey: "min-frames")
+        options?.setPlayerOptionIntValue(15 * 1024 * 1024, forKey: "max-buffer-size")
+        
+        // 设置重连参数
+        options?.setFormatOptionIntValue(1, forKey: "reconnect")
+        options?.setFormatOptionIntValue(1, forKey: "reconnect_at_eof")
+        options?.setFormatOptionIntValue(1, forKey: "reconnect_streamed")
+        options?.setFormatOptionIntValue(4, forKey: "reconnect_delay_max")
         
         // 添加后台播放配置
-        options?.setPlayerOptionIntValue(1, forKey: "pause-in-background") // 0 表示不暂停
-        options?.setPlayerOptionIntValue(1, forKey: "enable-background-play") // 启用后台播放
+        options?.setPlayerOptionIntValue(1, forKey: "pause-in-background")
         
-        // 创建播放器
-        let player = IJKFFMoviePlayerController(contentURL: url, with: options)
-        player?.shouldAutoplay = true
-        player?.scalingMode = .aspectFit
-        player?.shouldShowHudView = false
-        player?.delegate = self
+        // 创建新的播放器
+        let newPlayer = IJKFFMoviePlayerController(contentURL: url, with: options)
+        newPlayer?.shouldAutoplay = true
+        newPlayer?.scalingMode = .aspectFit
+        newPlayer?.shouldShowHudView = false
+        newPlayer?.delegate = self
         
         // 设置后台播放
-        player?.setPauseInBackground(false)
+        newPlayer?.setPauseInBackground(false)
         
-        print("start play video: \(url)")
-        self.player = player
-        return player
+        self.player = newPlayer
+        self.currentUrl = url
+        
+        return newPlayer
     }
     
     // 截图方法
@@ -140,7 +180,7 @@ public class HYEYE: NSObject {
     private func updateProgress(count: Int, total: Int) {
         let now = Date().timeIntervalSince1970
         if now - lastProgressUpdate >= progressUpdateInterval {
-            captureProgress.accept((count, total))
+            delegate?.captureProgressDidUpdate(current: count, total: total)
             lastProgressUpdate = now
         }
     }
@@ -315,15 +355,52 @@ extension HYEYE {
     
     @objc private func mediaIsPreparedToPlayDidChange(_ notification: Notification) {
         guard let player = notification.object as? IJKFFMoviePlayerController else { return }
+        
         if player.isPreparedToPlay {
-            isPreparedToPlay.accept(true)
+            print("HYEYE: Player prepared successfully")
+            prepareRetryCount = 0  // 重置重试计数
             delegate?.playbackDidPrepared()
+        } else {
+            print("HYEYE Error: Player preparation failed")
+            handlePrepareError()
+        }
+    }
+    
+    private func handlePrepareError() {
+        prepareRetryCount += 1
+        print("HYEYE: Prepare retry count: \(prepareRetryCount)")
+        
+        if prepareRetryCount < maxPrepareRetryCount {
+            // 延迟重试
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                print("HYEYE: Retrying prepare...")
+                self?.prepareToPlay()
+            }
+        } else {
+            print("HYEYE Error: Max prepare retry count reached")
+            handlePlaybackError(.playbackFailed)
         }
     }
     
     @objc private func moviePlayBackStateDidChange(_ notification: Notification) {
         guard let player = notification.object as? IJKFFMoviePlayerController else { return }
-        playbackState.accept(player.playbackState)
+        
+        print("HYEYE: Playback state changed to: \(player.playbackState.rawValue)")
+        
+        // 处理播放状态变化
+        switch player.playbackState {
+        case .paused:
+            self.delegate?.playbackStateDidChange(.paused)
+        case .stopped:
+            self.delegate?.playbackStateDidChange(.stopped)
+        case .interrupted:
+            print("HYEYE Error: Playback interrupted")
+            handlePlaybackError(.playbackFailed)
+        default:
+            break
+        }
+        
+        delegate?.playbackStateDidChange(player.playbackState)
     }
     
     @objc private func moviePlayerFirstVideoFrameRendered(_ notification: Notification) {
@@ -364,7 +441,6 @@ extension HYEYE: HYEYEProtocol {
     
     private func handlePlaybackError(_ error: PlaybackError) {
         print("播放错误: \(error.description)")
-        playbackError.accept(error)
         delegate?.playbackDidFinishWithError(error)
     }
 }
