@@ -31,7 +31,10 @@ extension HYPlayVC {
 
         output.playStateReplay
             .map { $0 == .playing }
-            .drive(btnPlay.rx.isSelected)
+            .drive(onNext: { [weak self] isPlaying in
+                self?.btnPlay.isSelected = isPlaying
+                self?.stSetNavigationBarHidden(isPlaying)
+            })
             .disposed(by: disposeBag)
         
         output.playStateReplay
