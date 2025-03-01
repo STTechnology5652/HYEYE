@@ -33,7 +33,7 @@ public protocol HYEYEDelegate: AnyObject {
 }
 
 public enum HYEyePlayerState {
-    case unloaded //默认转台
+    case loading //默认占位
     case loadfailed
     case loaded
     case playing
@@ -43,7 +43,7 @@ public enum HYEyePlayerState {
     
     public var isPlayerNormal: Bool {
         switch self {
-        case .unloaded, .loadfailed, .shutdown:
+        case .loading, .loadfailed, .shutdown:
             return false
         default:
             return true
@@ -52,7 +52,7 @@ public enum HYEyePlayerState {
     
     public var stateDescription: String {
         switch self {
-        case .unloaded:
+        case .loading:
             return "Loading ..."
         case .loadfailed:
             return "Load failed"

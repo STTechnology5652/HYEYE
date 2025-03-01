@@ -38,9 +38,15 @@ extension HYPlayVC {
             .disposed(by: disposeBag)
         
         output.playStateReplay
-            .map { $0.isPlayerNormal }
-            .drive(onNext: { [weak self] isEnabled in
+            .map { state in
+                (state.isPlayerNormal, state == .loadfailed)
+            }
+            .drive(onNext: { [weak self] (isEnabled, shouldRetry) in
                 self?.btnPlay.isEnabled = isEnabled
+                if shouldRetry {
+                    self?.btnPlay.isEnabled = true
+                    self?.btnPlay.isSelected = false
+                }
                 self?.btnPhoto.isEnabled = isEnabled
                 self?.recordButton.isEnabled = isEnabled
             })

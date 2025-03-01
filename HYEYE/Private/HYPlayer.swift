@@ -37,27 +37,26 @@ private class HYPlayerContainerView: UIView {
 extension HYPlayer {
     func play() {
         guard let player else { return }
-        
-        if player.isPreparedToPlay == false {
-            print("player is prepareing")
+        guard player.isPlaying() == false else {
+            print ("(player is playing)")
             return
         }
         
-        switch player.playbackState {
-        case .paused:
+        // 处理组合状态
+        if player.loadState.contains(.playthroughOK) {
+            print("player load state contains: playthrough OK")
             player.play()
-        case .stopped:
+        } else if player.loadState.contains(.stalled) {
+            print("player load state contains: stalled")
             player.play()
-        case .playing:
-            print("player is playing")
-        case .interrupted:
-            print("player is interupted")
-            player.shutdown()
-            player.prepareToPlay()
-        case .seekingForward:
-            break
-        case .seekingBackward:
-            break
+        } else if player.loadState.contains(.playable) {
+            print("player load state contains: playable")
+            player.play()
+        } else {
+            print("player load state contains: unknown")
+            output.playerStateTtacer.accept(.loading)
+            prepareRetryCount = 0
+            prepareError()
         }
     }
     
@@ -151,7 +150,7 @@ extension HYPlayer {
 
 class HYPlayer: NSObject {
     struct Output {
-        let playerStateTtacer: BehaviorRelay<HYEyePlayerState> = BehaviorRelay(value: .unloaded)
+        let playerStateTtacer: BehaviorRelay<HYEyePlayerState> = BehaviorRelay(value: .loading)
         let firstFrameRendered: BehaviorRelay<Bool> = BehaviorRelay<Bool>(value: false)
         let recordVideoFinishTracker: BehaviorRelay<URL?> = BehaviorRelay<(URL?)>(value: nil)
     }
@@ -309,7 +308,7 @@ class HYPlayer: NSObject {
         
         playerView.backgroundColor = .cyan
         playBackView.addSubview(playerView)
-        displayView.insertSubview(playBackView, at: 0)
+        displayView.addSubview(playBackView)
         
         playBackView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
@@ -364,6 +363,7 @@ class HYPlayer: NSObject {
                     self?.prepareError()
                 } else if player.loadState.contains(.playthroughOK) {
                     print("HYEYE: Player ready for playthrough")
+                    self?.prepareRetryCount = 0
                     player.play()
                 }
             })
@@ -374,6 +374,10 @@ class HYPlayer: NSObject {
             .subscribe(onNext: { [weak self] notification in
                 guard let self, let player = notification.object as? IJKFFMoviePlayerController else { return }
                 print("HYEYE: Playback state changed to: \(player.playbackState.rawValue)")
+                if player.loadState.rawValue == 0 {
+                    print("HYEYE: Player is not loaded, skip state changing")
+                    return
+                }
                 
                 switch player.playbackState {
                 case .playing:
@@ -425,7 +429,7 @@ class HYPlayer: NSObject {
     private func playerViewLayoutSuccess() {
         // 只有页面展开的时候，才能去 prepareToPlay
         print(#function + " playerViewLayoutSuccess: \(player)")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+        DispatchQueue.main.async { [weak self] in
             self?.player?.prepareToPlay()
         }
     }
@@ -433,16 +437,17 @@ class HYPlayer: NSObject {
     private func prepareError() {
         prepareRetryCount += 1
         print("HYEYE: Prepare retry count: \(prepareRetryCount)")
-        
         if prepareRetryCount < maxPrepareRetryCount {
+            output.playerStateTtacer.accept(.loading)
             // 延迟重试前先关闭当前播放器
-            player?.shutdown()
+            let oldPlayer = player
             player = nil
             
             print("HYEYE: Retrying prepare...")
             // 重新创建播放器
             self.createPlayer()
             self.bindData() // 重新绑定视图
+            oldPlayer?.shutdown()
             // 等待视图布局完成后会自动调用 prepareToPlay
         } else {
             print("HYEYE Error: Max prepare retry count reached")
@@ -472,5 +477,9 @@ extension HYPlayer: IJKFFMoviePlayerDelegate {
     public func playerDidRecordVideo(_ player: IJKFFMoviePlayerController, resultCode: Int32, fileName: String) {
         print(#function + " resultCode:\(resultCode) fileName:\(fileName)")
         output.recordVideoFinishTracker.accept(URL(string: fileName))
+    }
+    
+    public func playerOnNotifyDeviceConnected(_ player: IJKFFMoviePlayerController) {
+        print(#function)
     }
 }
