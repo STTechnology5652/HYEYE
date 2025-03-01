@@ -7,13 +7,14 @@
 
 import UIKit
 import CYLTabBarController
+import HYResource
 
 public class HYBaseNavVC: CYLBaseNavigationController {
     public override func viewDidLoad() {
         super.viewDidLoad()
         if #available(iOS 15.0, *) {
             let appearance = UINavigationBarAppearance()
-            appearance.backgroundColor = .red
+            appearance.backgroundColor = UIColor.c_main
             navigationBar.standardAppearance = appearance
             navigationBar.scrollEdgeAppearance = appearance
             

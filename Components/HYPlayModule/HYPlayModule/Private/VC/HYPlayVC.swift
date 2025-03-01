@@ -122,13 +122,15 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     private let playStateChangeTrigger = PublishRelay<Void>()
     private let playeStopTrigger = PublishRelay<Void>()
     
+    private var currentOrientation: UIInterfaceOrientation = .portrait
+    
     // MARK: - UI Components
     private lazy var playerContainerView: UIView = {
         UIView()
     }()
     
     private lazy var controlsView: UIStackView = {
-        let stack = UIStackView(arrangedSubviews: [btnPlay, btnPhoto, recordButton])
+        let stack = UIStackView(arrangedSubviews: [btnPlay, btnPhoto, recordButton, btnRotate])
         stack.axis = .vertical
         stack.spacing = 20
         stack.distribution = .fillEqually
@@ -183,6 +185,12 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         $0.layer.cornerRadius = 5
     }
     
+    private lazy var btnRotate = UIButton(type: .custom).then {
+        $0.setImage(UIImage.hyImage(name: "ico_phone_rotate"), for: .normal)
+        $0.backgroundColor = .darkGray
+        $0.layer.cornerRadius = 5
+    }
+    
     // MARK: - Lifecycle
     init(playUrl: String?) {
         self.playUrl = playUrl
@@ -202,6 +210,12 @@ class HYPlayVC: HYBaseViewControllerMVVM {
             })
             .disposed(by: disposeBag)
         
+        btnRotate.rx.tap
+            .subscribe(onNext: { [weak self] in
+                self?.rotateToNextOrientation()
+            })
+            .disposed(by: disposeBag)
+            
         openVideoTrigger.accept((playUrl, playerContainerView))
     }
     
@@ -218,7 +232,7 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     }
     
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        return .landscape
+        return [.portrait, .landscapeLeft, .landscapeRight]
     }
     
     deinit {
@@ -247,5 +261,35 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         )
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
+    }
+    
+    private func rotateToNextOrientation() {
+        let nextOrientation: UIInterfaceOrientation
+        
+        switch currentOrientation {
+        case .portrait:
+            nextOrientation = .landscapeRight
+        case .landscapeRight:
+            nextOrientation = .landscapeLeft
+        case .landscapeLeft:
+            nextOrientation = .portrait
+        default:
+            nextOrientation = .portrait
+        }
+        
+        currentOrientation = nextOrientation
+        
+        if #available(iOS 16.0, *) {
+            let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene
+            let orientation: UIInterfaceOrientationMask = switch nextOrientation {
+                case .portrait: .portrait
+                case .landscapeLeft: .landscapeLeft
+                case .landscapeRight: .landscapeRight
+                default: .portrait
+            }
+            windowScene?.requestGeometryUpdate(.iOS(interfaceOrientations: orientation))
+        } else {
+            UIDevice.current.setValue(nextOrientation.rawValue, forKey: "orientation")
+        }
     }
 }

@@ -113,6 +113,10 @@ extension HYPlayer {
             return false
         }
         
+        if player.isPlaying() == false {
+            return false
+        }
+        
         // 获取 Documents 目录
         let fm = FileManager.default
         
@@ -206,7 +210,6 @@ class HYPlayer: NSObject {
         // 如果已有播放器实例，先关闭它
         if let existingPlayer = player {
             self.player = nil
-            
             existingPlayer.shutdown()
             existingPlayer.view.removeFromSuperview()
             self.playerContainerView?.removeFromSuperview()
@@ -226,7 +229,8 @@ class HYPlayer: NSObject {
         // RTSP 传输配置
         options?.setFormatOptionValue("udp", forKey: "rtsp_transport")
         options?.setFormatOptionIntValue(0, forKey: "rtsp_flags")
-        
+        options?.setFormatOptionIntValue(Int64(PreferredVideoTypeH264.rawValue), forKey: "video")
+
         // UDP 相关配置 - 允许丢包
         options?.setFormatOptionIntValue(32768, forKey: "buffer_size")
         options?.setFormatOptionIntValue(16, forKey: "reorder_queue_size")
@@ -259,14 +263,24 @@ class HYPlayer: NSObject {
         options?.setPlayerOptionIntValue(1, forKey: "rtp-jpeg-parse-packet-method")
         options?.setPlayerOptionIntValue(0, forKey: "videotoolbox")
         
-        // 添加后台播放配置
-        options?.setPlayerOptionIntValue(1, forKey: "pause-in-background")
+        // 性能优化
+        options?.setPlayerOptionIntValue(1, forKey: "framedrop")
+        options?.setPlayerOptionIntValue(1, forKey: "start-on-prepared")
+        options?.setPlayerOptionIntValue(0, forKey: "sync-av-start")
+        options?.setPlayerOptionIntValue(1, forKey: "mediacodec")
+        
+        // 使用 FFmpeg 滤镜处理视频方向 -- 此处可以调整组有颠倒的问题， 但是显示HUB后发现，是设备内原是视频流的问题，不应该在解码层解决
+//        options?.setOptionValue("hflip,vflip", forKey: "vf", of: kIJKFFOptionCategoryPlayer)
+        
+        // 设置 RTSP 参数
+        options?.setFormatOptionValue("nobuffer", forKey: "fflags")
+        options?.setFormatOptionValue("1", forKey: "correct_ts_overflow")
         
         // 创建新的播放器
         let newPlayer = IJKFFMoviePlayerController(contentURL: url, with: options)
-        newPlayer?.shouldAutoplay = true
+        newPlayer?.shouldAutoplay = false
         newPlayer?.scalingMode = .aspectFit
-        newPlayer?.shouldShowHudView = false
+        newPlayer?.shouldShowHudView = true
         
         // 设置后台播放
         newPlayer?.setPauseInBackground(false)
@@ -306,7 +320,6 @@ class HYPlayer: NSObject {
             })
             .disposed(by: disPoseBag)
         
-        playerView.backgroundColor = .cyan
         playBackView.addSubview(playerView)
         displayView.addSubview(playBackView)
         
@@ -317,6 +330,9 @@ class HYPlayer: NSObject {
         playerView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
+        
+        // 添加视频变换
+        playerView.transform = CGAffineTransform(scaleX: -1, y: 1)
     }
     
     private func registNotification() {
