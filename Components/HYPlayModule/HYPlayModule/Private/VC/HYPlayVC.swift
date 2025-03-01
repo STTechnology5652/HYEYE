@@ -36,7 +36,11 @@ extension HYPlayVC {
         
         output.playStateReplay
             .map { $0.isPlayerNormal }
-            .drive(btnPlay.rx.isEnabled)
+            .drive(onNext: { [weak self] isEnabled in
+                self?.btnPlay.isEnabled = isEnabled
+                self?.btnPhoto.isEnabled = isEnabled
+                self?.recordButton.isEnabled = isEnabled
+            })
             .disposed(by: disposeBag)
         
         output.takePhotoTracer
@@ -44,6 +48,21 @@ extension HYPlayVC {
                 guard let image, let self else { return }
                 self.imgPhoto.image = image
             }
+            .disposed(by: disposeBag)
+        
+        // 录制状态绑定
+        output.recordVideoTracer
+            .map { $0.0 }  // 获取录制状态
+            .drive(recordButton.rx.isSelected)
+            .disposed(by: disposeBag)
+        
+        // 录制完成处理
+        output.recordVideoTracer
+            .compactMap { $0.1 }  // 只保留非空的 URL
+            .map { $0.path }      // 获取路径
+            .drive(onNext: { [weak self] path in
+                self?.showRecordingFinishedAlert(path: path)
+            })
             .disposed(by: disposeBag)
     }
     
@@ -104,6 +123,13 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         stack.axis = .vertical
         stack.spacing = 20
         stack.distribution = .fillEqually
+        
+        [btnPlay, btnPhoto, recordButton].forEach { button in
+            button.snp.makeConstraints { make in
+                make.size.equalTo(CGSize(width: 100, height: 30))
+            }
+        }
+        
         return stack
     }()
     
@@ -135,6 +161,7 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     
     private lazy var btnPhoto = UIButton(type: .custom).then {
         $0.setTitle("Photo", for: .normal)
+        $0.setBackgroundImage(UIImage(color: .green.withAlphaComponent(0.5)), for: .disabled)
         $0.backgroundColor = .darkGray
         $0.layer.cornerRadius = 5
     }
@@ -142,6 +169,7 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     private lazy var recordButton = UIButton(type: .custom).then {
         $0.setTitle("Record", for: .normal)
         $0.setTitle("Recording...", for: .selected)
+        $0.setBackgroundImage(UIImage(color: .green.withAlphaComponent(0.5)), for: .disabled)
         $0.backgroundColor = .darkGray
         $0.layer.cornerRadius = 5
     }

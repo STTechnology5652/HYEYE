@@ -17,6 +17,7 @@ class HYPlayVM: STViewModelProtocol {
     
     // 状态相关
     private let playStateRelay = BehaviorRelay<HYEyePlayerState>(value: .shutdown)
+    private let recordVideoTrigger: BehaviorRelay<(Bool, URL?)> = BehaviorRelay(value: (false, nil))
     
     deinit {
         disposeBag = DisposeBag()
@@ -42,6 +43,7 @@ class HYPlayVM: STViewModelProtocol {
     struct HYPlayVMOutput {
         let playStateReplay: Driver<HYEyePlayerState>
         let takePhotoTracer: Driver<UIImage?>
+        let recordVideoTracer: Driver<(Bool, URL?)>
     }
     
     // MARK: - Transform
@@ -77,7 +79,7 @@ class HYPlayVM: STViewModelProtocol {
                 
             })
             .disposed(by: disposeBag)
-
+        
         input.stopTrigger
             .subscribe(onNext: { [weak self] in
                 self?.eye.stop()
@@ -91,7 +93,7 @@ class HYPlayVM: STViewModelProtocol {
                 photoTrigger.accept(image)
             })
             .disposed(by: disposeBag)
-                       
+        
         // 处理停止播放
         input.closeVideo
             .subscribe(onNext: { [weak self] in
@@ -99,12 +101,24 @@ class HYPlayVM: STViewModelProtocol {
             })
             .disposed(by: disposeBag)
         
+        input.recordTrigger
+            .subscribe(onNext: { [weak self] in
+                guard let self else { return }
+                if eye.isRecordingVideo {
+                    eye.stopRecordVideo()
+                } else {
+                    let result = eye.recordVideo()
+                    recordVideoTrigger.accept((result, nil))
+                }
+            })
+            .disposed(by: disposeBag)
+        
         return HYPlayVMOutput(
             playStateReplay: playStateRelay.asDriver(),
-            takePhotoTracer: photoTrigger.asDriver()
+            takePhotoTracer: photoTrigger.asDriver(),
+            recordVideoTracer: recordVideoTrigger.asDriver()
         )
     }
-    
 }
 
 // 添加 delegate 实现
@@ -114,7 +128,12 @@ extension HYPlayVM: HYEYEDelegate {
     }
     
     func firstFrameRendered() {
-            
+        
+    }
+    
+    func finishRecordVideo(isRecording: Bool, videoUrl: URL?) {
+        print(#function + " \(isRecording): \(videoUrl)")
+        recordVideoTrigger.accept((isRecording, videoUrl))
     }
 }
 

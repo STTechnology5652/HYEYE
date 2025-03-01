@@ -34,61 +34,12 @@ private class HYPlayerContainerView: UIView {
     }
 }
 
-class HYPlayer: NSObject {
-    struct Output {
-        let playerStateTtacer: BehaviorRelay<HYEyePlayerState> = BehaviorRelay(value: .unloaded)
-        let firstFrameRendered: BehaviorRelay<Bool> = BehaviorRelay<Bool>(value: false)
-    }
-    
-    static func == (lhs: HYPlayer, rhs: HYPlayer) -> Bool {
-        lhs.url == rhs.url
-    }
-    
-    let output: Output = Output()
-    
-    private var disPoseBag: DisposeBag = DisposeBag()
-    
-    private var player: IJKFFMoviePlayerController?
-    private let url: URL
-    
-    private var playerContainerView: HYPlayerContainerView?
-    private weak var displayView: UIView?
-    
-    private var prepareRetryCount = 0
-    private let maxPrepareRetryCount = 5
-
-    deinit {
-        print("HYPlayer deinit")
-        playerContainerView
-        guard let player else {
-            return
-        }
-        
-        disPoseBag = DisposeBag()
-        player.shutdown()
-        player.view.removeFromSuperview()
-        playerContainerView?.removeFromSuperview()
-        playerContainerView = nil
-    }
-    
-    init(displayView: UIView, url: URL) {
-        self.displayView = displayView
-        self.url = url
-        
-        super.init()
-        
-        registNotification()
-        createPlayer()
-        bindData()
-    }
-    
+extension HYPlayer {
     func play() {
-        guard let player else {
-            return
-        }
+        guard let player else { return }
         
         if player.isPreparedToPlay == false {
-           print("player is prepareing")
+            print("player is prepareing")
             return
         }
         
@@ -143,6 +94,113 @@ class HYPlayer: NSObject {
         return player?.thumbnailImageAtCurrentTime()
     }
     
+    func isRecordingVodeo() -> Bool {
+        guard let player else {
+            return false
+        }
+        return player.videoRecordingStatus == VideoRecordingStatusRecording
+    }
+    
+    func stopRecordVideo() {
+        guard let player else {
+            return
+        }
+        
+        player.stopRecordVideo()
+    }
+    
+    func recordVideo() -> Bool {
+        guard let player else {
+            return false
+        }
+        
+        // 获取 Documents 目录
+        let fm = FileManager.default
+        
+        // 创建日期格式化器
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd-HH_mm_ss"
+        let fileName = df.string(from: Date())
+        // 创建录制视频存储目录
+        if !fm.fileExists(atPath: Self.videoStorePath.path) {
+            do {
+                print("start create dir \(Self.videoStorePath.path)")
+                try fm.createDirectory(at: Self.videoStorePath, withIntermediateDirectories: true)
+            } catch {
+                print("create dir error: \(error)")
+                return false
+            }
+        }
+        
+        // 完整的文件路径
+        let filePath = Self.videoStorePath.appendingPathComponent(fileName)
+        
+        print("start record video to \(filePath.path)")
+        player.startRecordVideo(atPath: Self.videoStorePath.path, withFileName: fileName, width: 1080, height: 1920)
+        return true
+    }
+    
+    static func allRecordedVideos() -> [URL] {
+        do {
+            return try FileManager.default.contentsOfDirectory(at: Self.videoStorePath, includingPropertiesForKeys: nil, options: [])
+        } catch {
+            return []
+        }
+    }
+}
+
+class HYPlayer: NSObject {
+    struct Output {
+        let playerStateTtacer: BehaviorRelay<HYEyePlayerState> = BehaviorRelay(value: .unloaded)
+        let firstFrameRendered: BehaviorRelay<Bool> = BehaviorRelay<Bool>(value: false)
+        let recordVideoFinishTracker: BehaviorRelay<URL?> = BehaviorRelay<(URL?)>(value: nil)
+    }
+    
+    static func == (lhs: HYPlayer, rhs: HYPlayer) -> Bool {
+        lhs.url == rhs.url
+    }
+    
+    let output: Output = Output()
+    
+    private var disPoseBag: DisposeBag = DisposeBag()
+    
+    private var player: IJKFFMoviePlayerController?
+    private let url: URL
+    
+    private var playerContainerView: HYPlayerContainerView?
+    private weak var displayView: UIView?
+    
+    private var prepareRetryCount = 0
+    private let maxPrepareRetryCount = 5
+    private static let videoStorePath: URL = FileManager.default.temporaryDirectory.appendingPathComponent("HYCam_VideoStore")
+    
+    deinit {
+        print("HYPlayer deinit")
+        playerContainerView
+        guard let player else {
+            return
+        }
+        
+        disPoseBag = DisposeBag()
+        player.shutdown()
+        player.view.removeFromSuperview()
+        playerContainerView?.removeFromSuperview()
+        playerContainerView = nil
+    }
+    
+    init(displayView: UIView, url: URL) {
+        self.displayView = displayView
+        self.url = url
+        
+        super.init()
+        
+        registNotification()
+        createPlayer()
+        bindData()
+    }
+    
+    
+    
     private func createPlayer() {
         print("HYEYE: opening video with url: \(url)")
         
@@ -157,7 +215,7 @@ class HYPlayer: NSObject {
         
         let playerBackView = HYPlayerContainerView()
         self.playerContainerView = playerBackView
-
+        
         // 创建新的播放器实例
         let options = IJKFFOptions.byDefault()
         
@@ -412,6 +470,7 @@ extension HYPlayer: IJKFFMoviePlayerDelegate {
     }
     
     public func playerDidRecordVideo(_ player: IJKFFMoviePlayerController, resultCode: Int32, fileName: String) {
-        print(#function)
+        print(#function + " resultCode:\(resultCode) fileName:\(fileName)")
+        output.recordVideoFinishTracker.accept(URL(string: fileName))
     }
 }

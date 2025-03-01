@@ -19,11 +19,17 @@ public protocol HYEYEInterface {
     func shutdown()
     
     func takePhoto() -> UIImage?
+    
+    var isRecordingVideo: Bool { get }
+    func recordVideo() -> Bool
+    func stopRecordVideo()
+    static func allVideoURLs() -> [URL]
 }
 
 public protocol HYEYEDelegate: AnyObject {
     func playerStateDidChange(_ state: HYEyePlayerState)
     func firstFrameRendered()
+    func finishRecordVideo(isRecording: Bool, videoUrl: URL?)
 }
 
 public enum HYEyePlayerState {

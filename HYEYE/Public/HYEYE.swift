@@ -59,6 +59,13 @@ extension HYEYE: HYEYEInterface {
                 self?.delegate?.firstFrameRendered()
             }
             .disposed(by: disposeBag)
+        
+        newPlayer.output.recordVideoFinishTracker
+            .subscribe { [weak self] (fileUrl: URL?) in
+                guard let self else { return }
+                self.delegate?.finishRecordVideo(isRecording: player?.isRecordingVodeo() ?? false, videoUrl: fileUrl)
+            }
+            .disposed(by: disposeBag)
     }
     
     public func playerState() -> HYEyePlayerState {
@@ -71,6 +78,41 @@ extension HYEYE: HYEYEInterface {
 
     public func takePhoto() -> UIImage? {
         player?.takePhoto()
+    }
+    
+    public var isRecordingVideo: Bool {
+        guard let player else {
+            print("HYEYE Error: player is nil")
+            return false
+        }
+        
+        return player.isRecordingVodeo()
+    }
+    
+    public func recordVideo() -> Bool {
+        guard let player else {
+            print("HYEYE Error: player is nil")
+            return false
+        }
+        
+        if player.isRecordingVodeo() {
+            return true
+        }
+        
+        return player.recordVideo()
+    }
+    
+    public func stopRecordVideo() {
+        guard let player else {
+            print("HYEYE Error: player is nil")
+            return
+        }
+        
+        player.stopRecordVideo()
+    }
+    
+    public static func allVideoURLs() -> [URL] {
+        return HYPlayer.allRecordedVideos()
     }
 }
 
