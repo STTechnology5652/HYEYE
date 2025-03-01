@@ -9,31 +9,16 @@
 import IJKMediaFramework.IJKFFOptions
 import Photos
 import AVFoundation
+import RxSwift
+import RxCocoa
 
-public protocol HYEYEProtocol {
-    func openVideo(url: URL, backView: UIView)
-}
 
-public enum HYEyePlayerState {
-    case loaded
-    case playing
-    case paused
-    case stopped
-    case shutdown
-}
-
-public protocol HYEYEDelegate: AnyObject {
-    func playerStateDidChange(_ state: HYEyePlayerState)
-    func playerLoadFinished(success: Bool)
-}
-
-public class HYEYE: NSObject, HYEYEProtocol {
-    // MARK: - Properties
-    public static let sharedInstance = HYEYE()
-    public weak var delegate: HYEYEDelegate?
-    private var player: HYPlayer?
+// MARK: - Public Methods
+extension HYEYE: HYEYEInterface {
+    public static func create() -> HYEYE {
+        return HYEYE()
+    }
     
-    // MARK: - Public Methods
     public func play() {
         guard let player else {
             print("HYEYE Error: player is nil")
@@ -41,14 +26,14 @@ public class HYEYE: NSObject, HYEYEProtocol {
         }
         
         player.play()
-        
     }
     
-    public func pause() {
-        guard let player else { return }
-        print("HYEYE: stopping playback")
+    public func stop() {
+        guard let player else {
+            print("HYEYE Error: player is nil")
+            return
+        }
         
-        // 先暂停播放
         player.stop()
     }
     
@@ -64,10 +49,44 @@ public class HYEYE: NSObject, HYEYEProtocol {
         
         let newPlayer = HYPlayer(displayView: backView, url: url)
         self.player = newPlayer
+        newPlayer.output.playerStateTtacer
+            .subscribe { [weak self] state in
+                self?.delegate?.playerStateDidChange(state)
+            }
+            .disposed(by: disposeBag)
+        newPlayer.output.firstFrameRendered
+            .subscribe { [weak self] in
+                self?.delegate?.firstFrameRendered()
+            }
+            .disposed(by: disposeBag)
     }
     
-    // 截图方法
-    public func takeSnapshot() -> UIImage? {
-        return UIImage()
+    public func playerState() -> HYEyePlayerState {
+        guard let player else {
+            return .shutdown
+        }
+        
+        return player.output.playerStateTtacer.value ?? .shutdown
+    }
+
+    public func takePhoto() -> UIImage? {
+        player?.takePhoto()
+    }
+}
+
+public class HYEYE: NSObject {
+    // MARK: - Interface
+    public weak var delegate: HYEYEDelegate?
+    
+    // MARK: - Properties
+    private var player: HYPlayer?
+    private var disposeBag: DisposeBag = DisposeBag()
+    
+    // 添加状态信号
+    public let playerStateRelay = BehaviorRelay<HYEyePlayerState>(value: .shutdown)
+    
+    // 更新 delegate 方法中的状态
+    public func playerStateDidChange(_ state: HYEyePlayerState) {
+        playerStateRelay.accept(state)
     }
 }

@@ -56,6 +56,8 @@ Pod::Spec.new do |spec|
    spec.dependency "Localize-Swift"
    spec.dependency "CYLTabBarController", '1.29.2'
    spec.dependency "MTCategoryComponent/UIKit/UIViewController"
+   spec.dependency "MTCategoryComponent/UIKit/UIColor"
+   spec.dependency "MTCategoryComponent/UIKit/UIImage"
 
    spec.dependency "HYBaseUI"
    spec.dependency "HYResource"

@@ -36,13 +36,8 @@ private class HYPlayerContainerView: UIView {
 
 class HYPlayer: NSObject {
     struct Output {
-        let loadFinish: BehaviorRelay<Bool> = BehaviorRelay(value: false)
-        let playerStopped: BehaviorRelay<Void> = BehaviorRelay(value: ())
-        let playerStarted: BehaviorRelay<Void> = BehaviorRelay(value: ())
-        let playerPaused: BehaviorRelay<Void> = BehaviorRelay(value: ())
-        let playerInterupted: BehaviorRelay<Void> = BehaviorRelay(value: ())
-        let playerShutDownd: BehaviorRelay<Void> = BehaviorRelay(value: ())
-        let firstFrameRendered: BehaviorRelay<Void> = BehaviorRelay(value: ())
+        let playerStateTtacer: BehaviorRelay<HYEyePlayerState> = BehaviorRelay(value: .unloaded)
+        let firstFrameRendered: BehaviorRelay<Bool> = BehaviorRelay<Bool>(value: false)
     }
     
     static func == (lhs: HYPlayer, rhs: HYPlayer) -> Bool {
@@ -144,6 +139,10 @@ class HYPlayer: NSObject {
         player.shutdown()
     }
     
+    func takePhoto() -> UIImage? {
+        return player?.thumbnailImageAtCurrentTime()
+    }
+    
     private func createPlayer() {
         print("HYEYE: opening video with url: \(url)")
         
@@ -211,7 +210,6 @@ class HYPlayer: NSObject {
         newPlayer?.shouldAutoplay = true
         newPlayer?.scalingMode = .aspectFit
         newPlayer?.shouldShowHudView = false
-//        newPlayer?.delegate = self
         
         // 设置后台播放
         newPlayer?.setPauseInBackground(false)
@@ -240,9 +238,9 @@ class HYPlayer: NSObject {
         let playBackView = HYPlayerContainerView()
         self.playerContainerView = playBackView
         
-        let disposeBag = DisposeBag()
-        self.disPoseBag = disposeBag
+        self.disPoseBag = DisposeBag()
         
+        registNotification()
         playerContainerView?.outPut.playerViewInitSuccess
             .skip(1)
             .subscribe(on: MainScheduler.instance)
@@ -275,7 +273,7 @@ class HYPlayer: NSObject {
                 
                 if player.isPreparedToPlay {
                     print("HYEYE: Player prepared to play success")
-                    self?.output.loadFinish.accept(true)
+                    self?.output.playerStateTtacer.accept(.loaded)
                 } else {
                     print("HYEYE: Player prepare failed")
                     self?.prepareError()
@@ -322,16 +320,16 @@ class HYPlayer: NSObject {
                 switch player.playbackState {
                 case .playing:
                     print("HYEYE: Player is playing")
-                    output.playerStarted.accept(())
+                    output.playerStateTtacer.accept(.playing)
                 case .stopped:
                     print("HYEYE: Player stopped")
-                    output.playerStopped.accept(())
+                    output.playerStateTtacer.accept(.stopped)
                 case .paused:
                     print("HYEYE: Player paused")
-                    output.playerPaused.accept(())
+                    output.playerStateTtacer.accept(.paused)
                 case .interrupted:
                     print("HYEYE Error: Playback interrupted")
-                    output.playerInterupted.accept(())
+                    output.playerStateTtacer.accept(.shutdown)
                 default:
                     break
                 }
@@ -343,7 +341,7 @@ class HYPlayer: NSObject {
             .subscribe(onNext: { [weak self] _ in
                 print("HYEYE: First video frame rendered")
                 guard let self else { return }
-                output.firstFrameRendered.accept(())
+                output.firstFrameRendered.accept(true)
             })
             .disposed(by: disPoseBag)
         
@@ -390,7 +388,7 @@ class HYPlayer: NSObject {
             // 等待视图布局完成后会自动调用 prepareToPlay
         } else {
             print("HYEYE Error: Max prepare retry count reached")
-            output.loadFinish.accept(false)
+            output.playerStateTtacer.accept(.loadfailed)
         }
     }
 }

@@ -21,4 +21,6 @@
 
 
 @_exported import MTCategoryComponent.MTUIViewControllerExtensionHeader
+@_exported import MTCategoryComponent.UIColor_MTExtension
+@_exported import MTCategoryComponent.UIImage_MTExtension
 
