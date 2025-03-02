@@ -30,7 +30,7 @@ public protocol HYEYEInterface {
 
 public protocol HYEYEDelegate: AnyObject {
     func playerStateDidChange(_ state: HYEyePlayerState)
-    func firstFrameRendered()
+    func firstFrameRendered(_ first: Bool)
     func finishRecordVideo(isRecording: Bool, videoUrl: URL?)
 }
 

@@ -50,21 +50,22 @@ extension HYEYE: HYEYEInterface {
         let newPlayer = HYPlayer(displayView: backView, url: url)
         self.player = newPlayer
         newPlayer.output.playerStateTtacer
-            .subscribe { [weak self] state in
+            .subscribe(onNext: { [weak self] state in
                 self?.delegate?.playerStateDidChange(state)
-            }
+            })
             .disposed(by: disposeBag)
         newPlayer.output.firstFrameRendered
-            .subscribe { [weak self] in
-                self?.delegate?.firstFrameRendered()
-            }
+            .skip(1)
+            .subscribe(onNext: { [weak self] firstRedner in
+                self?.delegate?.firstFrameRendered(firstRedner)
+            })
             .disposed(by: disposeBag)
         
         newPlayer.output.recordVideoFinishTracker
-            .subscribe { [weak self] (fileUrl: URL?) in
+            .subscribe(onNext: { [weak self] (fileUrl: URL?) in
                 guard let self else { return }
                 self.delegate?.finishRecordVideo(isRecording: player?.isRecordingVodeo() ?? false, videoUrl: fileUrl)
-            }
+            })
             .disposed(by: disposeBag)
     }
     

@@ -14,12 +14,15 @@ class HYPlayVM: STViewModelProtocol {
     var disposeBag = DisposeBag()
     
     private var eye: any HYEYEInterface = HYEYE.create()
+    private var isFinitRenderFrame: Bool = false
+
     private var albumService: HYAlbumServiceInterface = HYAlbumService()
     
     // 状态相关
     private let playStateRelay = BehaviorRelay<HYEyePlayerState>(value: .shutdown)
     private let recordVideoTrigger: BehaviorRelay<(Bool, URL?)> = BehaviorRelay(value: (false, nil))
     private let needPhotoPermisionRelay: BehaviorRelay<Bool> = BehaviorRelay(value: false)
+    private let firstFrameRenderedTrigger: BehaviorRelay<Bool> = BehaviorRelay(value: false)
     
     deinit {
         disposeBag = DisposeBag()
@@ -47,6 +50,7 @@ class HYPlayVM: STViewModelProtocol {
         let takePhotoTracer: Driver<UIImage?>
         let recordVideoTracer: Driver<(Bool, URL?)>
         let needPhotoPermisionTracer: Driver<Bool>
+        let firstFrameRenderedTracer: Driver<Bool>
     }
     
     // MARK: - Transform
@@ -131,7 +135,8 @@ class HYPlayVM: STViewModelProtocol {
             playStateReplay: playStateRelay.asDriver(),
             takePhotoTracer: photoTrigger.asDriver(),
             recordVideoTracer: recordVideoTrigger.asDriver(),
-            needPhotoPermisionTracer: needPhotoPermisionRelay.asDriver()
+            needPhotoPermisionTracer: needPhotoPermisionRelay.asDriver(),
+            firstFrameRenderedTracer: firstFrameRenderedTrigger.asDriver()
         )
     }
 }
@@ -142,8 +147,10 @@ extension HYPlayVM: HYEYEDelegate {
         playStateRelay.accept(state)
     }
     
-    func firstFrameRendered() {
-        
+    func firstFrameRendered(_ firstRedned: Bool) {
+        guard isFinitRenderFrame == false else { return }
+        isFinitRenderFrame = true
+        firstFrameRenderedTrigger.accept(firstRedned)
     }
     
     func finishRecordVideo(isRecording: Bool, videoUrl: URL?) {

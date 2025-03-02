@@ -144,6 +144,14 @@ extension HYPlayVC {
                 self.present(alert, animated: true)
             })
             .disposed(by: disposeBag)
+        
+        output.firstFrameRenderedTracer
+            .drive(onNext: { [weak self] isFirstResponder in
+                if isFirstResponder {
+                    self?.playControlsHideTrigger.accept(())
+                }
+            })
+            .disposed(by: disposeBag)
     }
     
     func setUpUI() {
@@ -300,14 +308,6 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         title = "视频预览".stLocalLized
             
         openVideoTrigger.accept((playUrl, playerContainerView))
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in //1s后自动隐藏控制面板
-            guard let self else { return }
-            self.playControlsHideTrigger.accept(())
-        }
     }
     
     override func viewWillDisappear(_ animated: Bool) {
