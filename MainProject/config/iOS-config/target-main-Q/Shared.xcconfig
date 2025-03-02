@@ -72,8 +72,9 @@ MODULE_NAME = HYEYE_Pro
 // [CFBundleIdentifier](https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundleidentifier)
 // key in the `Info.plist` file to the value of this build setting.
 
-PRODUCT_BUNDLE_IDENTIFIER = com.HY.HYEYE
+PRODUCT_BUNDLE_IDENTIFIER = com.aivol.linecam
 
+PRODUCT_DISPLAY_NAME = HY-CamQ
 
 // Provisioning Profile
 //
