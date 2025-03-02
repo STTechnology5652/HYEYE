@@ -139,21 +139,22 @@ extension HYPlayVC {
         }
         
         controlsView.snp.makeConstraints { make in
-            make.top.equalTo(btnControlBack.safeAreaLayoutGuide.snp.top).offset(UINavigationBar.appearance().mt_height + 10)
+            make.bottom.equalTo(btnControlBack.safeAreaLayoutGuide.snp.bottom).offset(-20)
             make.width.lessThanOrEqualToSuperview().offset(-40)
             make.centerX.equalToSuperview()
         }
         
         imgPhoto.snp.makeConstraints { make in
-            make.left.equalTo(20)
-            make.bottom.equalToSuperview().offset(-20)
+            make.left.equalTo(btnControlBack.safeAreaLayoutGuide.snp.left).offset(20)
+            make.bottom.equalTo(controlsView.snp.top).offset(-10)
             make.size.equalTo(CGSize(width: 80, height: 80))
         }
         
         labPlayStatus.snp.makeConstraints { make in
-            make.bottom.equalToSuperview().offset(-20)
-            make.left.equalTo(imgPhoto.snp.right).offset(5)
-            make.right.equalTo(-20)
+            make.bottom.equalTo(imgPhoto.snp.bottom)
+            make.centerX.equalTo(controlsView)
+            make.left.greaterThanOrEqualTo(imgPhoto.snp.right).offset(5)
+            make.right.lessThanOrEqualTo(btnControlBack.snp.right).offset(-20)
         }
     }
 }
@@ -198,8 +199,8 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     
     private lazy var labPlayStatus: UILabel = {
         UILabel().then {
-            $0.textColor = .red
-            $0.font = .systemFont(ofSize: 14)
+            $0.textColor = .c_text_warning
+            $0.font = .systemFont(ofSize: 15)
             $0.textAlignment = .center
         }
     }()
@@ -264,7 +265,7 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     override func viewDidLoad() {
         super.viewDidLoad()
         print("viewDidLoad")
-        title = "视频预览".localized()
+        title = "视频预览".stLocalLized
             
         openVideoTrigger.accept((playUrl, playerContainerView))
     }
