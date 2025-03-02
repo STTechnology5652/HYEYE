@@ -94,9 +94,6 @@ extension ViewController {
         let req = STRouterUrlRequest.instance { builder in
             builder.urlToOpen = HYRouterServiceDefine.kRouterAlbum
             builder.fromVC = self
-            builder.parameter = [
-                HYRouterServiceDefine.kRouterPara_url : HYCommonConfig.kPlayUrl
-            ]
         }
         
         stRouterOpenUrlRequest(req) {_ in }

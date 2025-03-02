@@ -152,6 +152,15 @@ extension HYPlayVC {
                 }
             })
             .disposed(by: disposeBag)
+
+        // 添加预览图点击事件
+        if let tap = imgPhoto.gestureRecognizers?.first as? UITapGestureRecognizer {
+            tap.rx.event
+                .bind(onNext: { [weak self] _ in
+                    self?.openAlbumVC()
+                })
+                .disposed(by: disposeBag)
+        }
     }
     
     func setUpUI() {
@@ -196,6 +205,16 @@ extension HYPlayVC {
             make.left.greaterThanOrEqualTo(imgPhoto.snp.right).offset(5)
             make.right.lessThanOrEqualTo(btnControlBack.snp.right).offset(-20)
         }
+    }
+    
+    //跳转相册界面
+    private func openAlbumVC() {
+        let req = STRouterUrlRequest.instance { builder in
+            builder.urlToOpen = HYRouterServiceDefine.kRouterAlbum
+            builder.fromVC = self
+        }
+        
+        stRouterOpenUrlRequest(req) {_ in }
     }
 }
 
@@ -249,6 +268,9 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         UIImageView().then {
             $0.layer.cornerRadius = 5
             $0.backgroundColor = .lightGray
+            $0.isUserInteractionEnabled = true // 启用用户交互
+            let tap = UITapGestureRecognizer()
+            $0.addGestureRecognizer(tap)
         }
     }()
     

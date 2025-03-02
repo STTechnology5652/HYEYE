@@ -69,10 +69,57 @@ class HYAlbumVC: HYBaseViewControllerMVVM {
     private var player: AVPlayer?
     private var playerLayer: AVPlayerLayer?
     
+    private var orientationObserver: NSObjectProtocol?
+    
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         loadTrigger.accept(())
+    }
+    
+    override func updateBackgroundForOrientation() {
+        super.updateBackgroundForOrientation()
+        handleOrientationChange()
+    }
+    
+    private func handleOrientationChange() {
+        // 更新 collection view 布局
+        updateCollectionViewLayout()
+        
+        // 更新预览视图布局
+        if !previewContainer.isHidden {
+            playerLayer?.frame = playerView.bounds
+        }
+    }
+    
+    private func updateCollectionViewLayout() {
+        guard let layout = collectionView.collectionViewLayout as? UICollectionViewFlowLayout else {
+            return
+        }
+        
+        let screenWidth = UIScreen.main.bounds.width
+        let screenHeight = UIScreen.main.bounds.height
+        let isLandscape = screenWidth > screenHeight
+        
+        // 根据屏幕方向计算 item 大小
+        let spacing: CGFloat = 1
+        let columns: CGFloat = isLandscape ? 5 : 3
+        let itemWidth = (screenWidth - (columns + 1) * spacing) / columns
+        
+        layout.itemSize = CGSize(width: itemWidth, height: itemWidth)
+        layout.minimumLineSpacing = spacing
+        layout.minimumInteritemSpacing = spacing
+        
+        // 强制布局更新
+        layout.invalidateLayout()
+    }
+    
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        
+        coordinator.animate { [weak self] _ in
+            self?.handleOrientationChange()
+        }
     }
     
     func setUpUI() {
@@ -90,7 +137,7 @@ class HYAlbumVC: HYBaseViewControllerMVVM {
         }
         
         previewContainer.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
+            make.edges.equalTo(view.safeAreaLayoutGuide)
         }
         
         previewImageView.snp.makeConstraints { make in
@@ -102,7 +149,8 @@ class HYAlbumVC: HYBaseViewControllerMVVM {
         }
         
         closeButton.snp.makeConstraints { make in
-            make.top.right.equalTo(view.safeAreaLayoutGuide).inset(16)
+            make.top.equalTo(view.safeAreaLayoutGuide).offset(16)
+            make.right.equalTo(view.safeAreaLayoutGuide).offset(-16)
             make.size.equalTo(CGSize(width: 40, height: 40))
         }
         
@@ -119,6 +167,9 @@ class HYAlbumVC: HYBaseViewControllerMVVM {
             self?.hidePreview()
         })
         .disposed(by: disposeBag)
+        
+        // 初始化时设置布局
+        updateCollectionViewLayout()
     }
     
     func bindData() {
