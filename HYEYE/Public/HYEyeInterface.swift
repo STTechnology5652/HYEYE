@@ -55,19 +55,19 @@ public enum HYEyePlayerState {
     public var stateDescription: String {
         switch self {
         case .loading:
-            return "Loading ..."
+            return "加载中..."
         case .loadfailed:
-            return "Load failed"
+            return "加载失败"
         case .loaded:
-            return "Load success"
+            return "加载成功"
         case .playing:
-            return "Playing"
+            return "播放中..."
         case .stopped:
-            return "Stopped"
+            return "已暂停"
         case .paused:
-            return "Stopped"
+            return "已暂停"
         case .shutdown:
-            return "Closed"
+            return "已关闭"
         }
     }
 }

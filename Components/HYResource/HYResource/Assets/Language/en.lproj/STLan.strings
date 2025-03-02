@@ -11,5 +11,11 @@
 "播放" = "Play";
 "视频预览" = "Video Preview";
 
+"加载中..." = "Loading...";
+"加载失败" = "Load failed";
+"播放中..." = "Playing...";
+"已暂停" = "Paused";
+"已关闭" = "Closed";
+
 "HYResource Example" = "HYResource Example";
 

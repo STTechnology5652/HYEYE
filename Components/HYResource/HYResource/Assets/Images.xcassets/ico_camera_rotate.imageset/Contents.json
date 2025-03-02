@@ -8,16 +8,6 @@
       "appearances" : [
         {
           "appearance" : "luminosity",
-          "value" : "light"
-        }
-      ],
-      "idiom" : "universal",
-      "scale" : "1x"
-    },
-    {
-      "appearances" : [
-        {
-          "appearance" : "luminosity",
           "value" : "dark"
         }
       ],
@@ -25,17 +15,6 @@
       "scale" : "1x"
     },
     {
-      "filename" : "ico_light_camera_rotate@2x 1.png",
-      "idiom" : "universal",
-      "scale" : "2x"
-    },
-    {
-      "appearances" : [
-        {
-          "appearance" : "luminosity",
-          "value" : "light"
-        }
-      ],
       "filename" : "ico_light_camera_rotate@2x.png",
       "idiom" : "universal",
       "scale" : "2x"
@@ -52,17 +31,6 @@
       "scale" : "2x"
     },
     {
-      "filename" : "ico_light_camera_rotate@3x 1.png",
-      "idiom" : "universal",
-      "scale" : "3x"
-    },
-    {
-      "appearances" : [
-        {
-          "appearance" : "luminosity",
-          "value" : "light"
-        }
-      ],
       "filename" : "ico_light_camera_rotate@3x.png",
       "idiom" : "universal",
       "scale" : "3x"

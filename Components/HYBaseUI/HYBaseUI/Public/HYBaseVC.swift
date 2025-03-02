@@ -64,9 +64,13 @@ open class HYBaseVC: CYLBaseViewController {
         return imgView
     }()
     
+    public func hideBackIconImage(_ hide: Bool) {
+        self.imgBackView.iconTextView.isHidden = hide
+    }
+    
     public var hyBackImg: UIImage? = UIImage.hyImage(name: "img_home_back") {
         didSet {
-            UIView.animate(withDuration: 0.01) { // 防止闪屏
+            UIView.animate(withDuration: 0.1) { // 防止闪屏
                 self.imgBackView.backImageView.image = self.hyBackImg
             }
         }

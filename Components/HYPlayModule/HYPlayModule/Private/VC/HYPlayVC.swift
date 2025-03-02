@@ -36,8 +36,11 @@ extension HYPlayVC {
         
         btnControlPan.rx.tap
             .bind(onNext: { [weak self] in
-                self?.btnControlBack.isHidden = false
-                self?.stSetNavigationBarHidden(false)
+                guard let self else { return }
+                self.stSetNavigationBarHidden(false)
+                UIView.animate(withDuration: 0.25) {
+                    self.btnControlBack.alpha = 1
+                }
             })
             .disposed(by: disposeBag)
         
@@ -49,8 +52,11 @@ extension HYPlayVC {
         
         playControlsHideTrigger
             .subscribe(onNext: { [weak self] in
-                self?.btnControlBack.isHidden = true
-                self?.stSetNavigationBarHidden(true)
+                guard let self else { return }
+                self.stSetNavigationBarHidden(true)
+                UIView.animate(withDuration: 0.25) {
+                    self.btnControlBack.alpha = 0
+                }
             })
             .disposed(by: disposeBag)
 
@@ -58,7 +64,7 @@ extension HYPlayVC {
         
         // 处理播放器状态
         output.playStateReplay
-            .map { $0.stateDescription }
+            .map { $0.stateDescription.localized() }
             .drive(labPlayStatus.rx.text)
             .disposed(by: disposeBag)
 
@@ -71,16 +77,17 @@ extension HYPlayVC {
         
         output.playStateReplay
             .map { state in
-                (state.isPlayerNormal, state == .loadfailed)
+                (state.isPlayerNormal, state == .playing, state == .loadfailed)
             }
-            .drive(onNext: { [weak self] (isEnabled, shouldRetry) in
+            .drive(onNext: { [weak self] (isEnabled, isPlaying, isPrepareFailed) in
                 self?.btnPlay.isEnabled = isEnabled
-                if shouldRetry {
+                if isPrepareFailed {
                     self?.btnPlay.isEnabled = true
                     self?.btnPlay.isSelected = false
                 }
-                self?.btnPhoto.isEnabled = isEnabled
-                self?.recordButton.isEnabled = isEnabled
+                
+                self?.btnPhoto.isEnabled = isPlaying
+                self?.recordButton.isEnabled = isPlaying
             })
             .disposed(by: disposeBag)
         
@@ -108,10 +115,11 @@ extension HYPlayVC {
     }
     
     func setUpUI() {
-        view.backgroundColor = .black
+        hideBackIconImage(true) //隐藏页面默认的 app logo
+        hyBackImg = nil //隐藏页面默认背景图
+        view.backgroundColor = .c_theme_back
         
         view.addSubview(playerContainerView)
-        
         view.addSubview(btnControlPan)
         view.addSubview(btnControlBack)
         btnControlBack.addSubview(controlsView)
@@ -131,9 +139,9 @@ extension HYPlayVC {
         }
         
         controlsView.snp.makeConstraints { make in
-            make.centerY.equalToSuperview()
-            make.right.equalToSuperview().offset(-20)
-            make.width.equalTo(120)
+            make.top.equalTo(btnControlBack.safeAreaLayoutGuide.snp.top).offset(UINavigationBar.appearance().mt_height + 10)
+            make.width.lessThanOrEqualToSuperview().offset(-40)
+            make.centerX.equalToSuperview()
         }
         
         imgPhoto.snp.makeConstraints { make in
@@ -174,14 +182,14 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     }()
     
     private lazy var controlsView: UIStackView = {
-        let stack = UIStackView(arrangedSubviews: [btnPlay, btnPhoto, recordButton, btnRotate])
-        stack.axis = .vertical
-        stack.spacing = 20
-        stack.distribution = .fillEqually
+        let controlBtnArr = [btnPlay, btnPhoto, recordButton, btnRotate]
+        let stack = UIStackView(arrangedSubviews: controlBtnArr)
+        stack.axis = .horizontal
+        stack.spacing = 10
         
-        [btnPlay, btnPhoto, recordButton].forEach { button in
+        controlBtnArr.forEach { button in
             button.snp.makeConstraints { make in
-                make.size.equalTo(CGSize(width: 100, height: 30))
+                make.size.equalTo(CGSize(width: 40, height: 40))
             }
         }
         
@@ -204,27 +212,25 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     }()
     
     private lazy var btnPlay = UIButton(type: .custom).then {
-        $0.setTitle("Prepare ...", for: .disabled)
-        $0.setTitle( "Play", for: .normal)
-        $0.setTitle( "Stop", for: .selected)
-        $0.setBackgroundImage(UIImage(color: .green), for: .normal)
-        $0.setBackgroundImage(UIImage(color: .green.withAlphaComponent(0.5)), for: .disabled)
+        $0.setBackgroundImage(UIImage.hyImage(name: "ico_play")?.applyingAlpha(0.5), for: .disabled)
+        $0.setBackgroundImage(UIImage.hyImage(name: "ico_play"), for: .normal)
+        $0.setBackgroundImage(UIImage.hyImage(name: "ico_stop"), for: .selected)
         $0.backgroundColor = .darkGray
         $0.layer.cornerRadius = 5
         $0.layer.masksToBounds = true
     }
     
     private lazy var btnPhoto = UIButton(type: .custom).then {
-        $0.setTitle("Photo", for: .normal)
-        $0.setBackgroundImage(UIImage(color: .green.withAlphaComponent(0.5)), for: .disabled)
+        $0.setBackgroundImage(UIImage.hyImage(name: "ico_photo"), for: .normal)
+        $0.setBackgroundImage(UIImage.hyImage(name: "ico_photo")?.applyingAlpha(0.5), for: .disabled)
         $0.backgroundColor = .darkGray
         $0.layer.cornerRadius = 5
     }
     
     private lazy var recordButton = UIButton(type: .custom).then {
-        $0.setTitle("Record", for: .normal)
-        $0.setTitle("Recording...", for: .selected)
-        $0.setBackgroundImage(UIImage(color: .green.withAlphaComponent(0.5)), for: .disabled)
+        $0.setBackgroundImage(UIImage.hyImage(name: "ico_video"), for: .normal)
+        $0.setBackgroundImage(UIImage.hyImage(name: "ico_video")?.applyingAlpha(0.5), for: .disabled)
+        $0.setBackgroundImage(UIImage.hyImage(name: "ico_video_taped"), for: .selected)
         $0.backgroundColor = .darkGray
         $0.layer.cornerRadius = 5
     }
@@ -258,7 +264,6 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     override func viewDidLoad() {
         super.viewDidLoad()
         print("viewDidLoad")
-        hyBackImg = nil
         title = "视频预览".localized()
             
         openVideoTrigger.accept((playUrl, playerContainerView))
