@@ -20,19 +20,54 @@ public protocol HYBaseVC_RxProtocol {
     func setUpUI()
 }
 
+private class HYBackImageView : UIView {
+    let backImageView: UIImageView = {
+        let imgView = UIImageView(image: UIImage.hyImage(name: "img_home_back"))
+        imgView.contentMode = .scaleAspectFit
+        return imgView
+    }()
+    
+    let iconTextView: UIImageView = {
+        let imgView = UIImageView(image: UIImage.hyImage(name: "icon_text"))
+        imgView.contentMode = .scaleAspectFit
+        return imgView
+    }()
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        
+        addSubview(backImageView)
+        addSubview(iconTextView)
+        
+        backImageView.snp.makeConstraints { (make) in
+            make.edges.equalToSuperview()
+        }
+        
+        iconTextView.snp.makeConstraints { (make) in
+            make.left.equalTo(20)
+            make.top.equalTo(safeAreaLayoutGuide.snp.top)
+            make.size.equalTo(CGSize(width: 260, height: 60))
+        }
+        
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+}
+
 open class HYBaseVC: CYLBaseViewController {
     private var disposeBagForDeviceOrientation: DisposeBag = DisposeBag()
     
-    private let imgBackView: UIImageView = {
-        let imgView = UIImageView(image: UIImage.hyImage(name: "img_home_back"))
-        imgView.contentMode = .scaleAspectFit
+    private let imgBackView: HYBackImageView = {
+        let imgView = HYBackImageView()
         return imgView
     }()
     
     public var hyBackImg: UIImage? = UIImage.hyImage(name: "img_home_back") {
         didSet {
             UIView.animate(withDuration: 0.01) { // 防止闪屏
-                self.imgBackView.image = self.hyBackImg
+                self.imgBackView.backImageView.image = self.hyBackImg
             }
         }
     }

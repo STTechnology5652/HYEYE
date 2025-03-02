@@ -8,17 +8,10 @@
 import UIKit
 import HYAllBase
 
-class ViewController: HYBaseViewControllerMVVM {
-    @IBOutlet private weak var btnOpenSetting: UIButton!
-    @IBOutlet weak var btnPlay: UIButton!
-    
-    var vm = STViewControllerVM()
-    var disposeBag = DisposeBag()
-    
-    private weak var defaultLaunchImage = UIImageView()
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
+extension ViewController {
+    func setUpUI() {
+        view.addSubview(btnOpenSetting)
+        view.addSubview(btnPlay)
         
         let imgLaunchView = UIImageView(image: UIImage(named: "launch_image"))
         view.addSubview(imgLaunchView)
@@ -27,19 +20,28 @@ class ViewController: HYBaseViewControllerMVVM {
             make.edges.equalToSuperview()
         }
         
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        if let defaultLaunchImage {
-            self.defaultLaunchImage = nil
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                defaultLaunchImage.removeFromSuperview()
+        btnOpenSetting.snp.makeConstraints { make in
+            make.size.equalTo(CGSize(width: 40, height: 40))
+            make.top.equalTo(view.safeAreaLayoutGuide.snp.top).offset(10)
+            make.right.equalTo(-20)
+        }
+        
+        let btnBottomList = [btnPlay, btnAlbum]
+        let controlStack = UIStackView(arrangedSubviews: btnBottomList)
+        controlStack.axis = .horizontal
+        controlStack.spacing = 10
+        view.addSubview(controlStack)
+        controlStack.snp.makeConstraints { make in
+            make.width.lessThanOrEqualToSuperview().offset(-40)
+            make.centerX.equalToSuperview()
+            make.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom).offset(-20)
+        }
+        
+        btnBottomList.forEach {
+            $0.snp.makeConstraints { make in
+                make.size.equalTo(CGSize(width: 40, height: 40))
             }
         }
-    }
-    
-    func setUpUI() {
     }
     
     func bindData() {
@@ -80,5 +82,43 @@ class ViewController: HYBaseViewControllerMVVM {
         }
         
         stRouterOpenUrlRequest(req) {_ in }
+    }
+}
+
+class ViewController: HYBaseViewControllerMVVM {
+    private lazy var btnOpenSetting: UIButton = {
+        UIButton(type: .custom).then {
+            $0.setBackgroundImage(UIImage.hyImage(name: "ico_setting"), for: .normal)
+        }
+    }()
+    
+    private lazy var btnPlay: UIButton = {
+        UIButton(type: .custom).then {
+            $0.setBackgroundImage(UIImage.hyImage(name: "ico_photo"), for: .normal)
+        }
+    }()
+    
+    private lazy var btnAlbum: UIButton = {
+        UIButton(type: .custom).then {
+            $0.setBackgroundImage(UIImage.hyImage(name: "ico_album"), for: .normal)
+        }
+    }()
+
+    private weak var defaultLaunchImage: UIImageView?
+    var vm = STViewControllerVM()
+    var disposeBag = DisposeBag()
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if let defaultLaunchImage {
+            self.defaultLaunchImage = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                defaultLaunchImage.removeFromSuperview()
+            }
+        }
     }
 }

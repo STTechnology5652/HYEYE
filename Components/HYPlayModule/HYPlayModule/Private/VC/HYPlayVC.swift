@@ -21,6 +21,39 @@ extension HYPlayVC {
             recordTrigger: recordButton.rx.tap.asObservable()
         )
         
+        // 设置按钮事件
+        btnPlay.rx.tap
+            .subscribe(onNext: { [weak self] in
+                self?.playStateChangeTrigger.accept(())
+            })
+            .disposed(by: disposeBag)
+        
+        btnRotate.rx.tap
+            .bind(onNext: { [weak self] in
+                self?.rotateToNextOrientation()
+            })
+            .disposed(by: disposeBag)
+        
+        btnControlPan.rx.tap
+            .bind(onNext: { [weak self] in
+                self?.btnControlBack.isHidden = false
+                self?.stSetNavigationBarHidden(false)
+            })
+            .disposed(by: disposeBag)
+        
+        btnControlBack.rx.tap
+            .bind(onNext: { [weak self] in
+                self?.playControlsHideTrigger.accept(())
+            })
+            .disposed(by: disposeBag)
+        
+        playControlsHideTrigger
+            .subscribe(onNext: { [weak self] in
+                self?.btnControlBack.isHidden = true
+                self?.stSetNavigationBarHidden(true)
+            })
+            .disposed(by: disposeBag)
+
         let output = viewModel.transformInput(input)
         
         // 处理播放器状态
@@ -33,7 +66,6 @@ extension HYPlayVC {
             .map { $0 == .playing }
             .drive(onNext: { [weak self] isPlaying in
                 self?.btnPlay.isSelected = isPlaying
-                self?.stSetNavigationBarHidden(isPlaying)
             })
             .disposed(by: disposeBag)
         
@@ -79,9 +111,20 @@ extension HYPlayVC {
         view.backgroundColor = .black
         
         view.addSubview(playerContainerView)
-        view.addSubview(controlsView)
-        view.addSubview(labPlayStatus)
-        view.addSubview(imgPhoto)
+        
+        view.addSubview(btnControlPan)
+        view.addSubview(btnControlBack)
+        btnControlBack.addSubview(controlsView)
+        btnControlBack.addSubview(labPlayStatus)
+        btnControlBack.addSubview(imgPhoto)
+        
+        btnControlPan.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        
+        btnControlBack.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
         
         playerContainerView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
@@ -121,6 +164,7 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     private let closeVideoTrigger = PublishRelay<Void>()
     private let playStateChangeTrigger = PublishRelay<Void>()
     private let playeStopTrigger = PublishRelay<Void>()
+    private let playControlsHideTrigger = PublishRelay<Void>()
     
     private var currentOrientation: UIInterfaceOrientation = .portrait
     
@@ -191,6 +235,18 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         $0.layer.cornerRadius = 5
     }
     
+    private lazy var btnControlPan: UIButton = {
+        UIButton().then {
+            $0.backgroundColor = .clear
+        }
+    }()
+    
+    private lazy var btnControlBack: UIButton = {
+        UIButton().then {
+            $0.backgroundColor = .clear
+        }
+    }()
+    
     // MARK: - Lifecycle
     init(playUrl: String?) {
         self.playUrl = playUrl
@@ -203,25 +259,17 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         super.viewDidLoad()
         print("viewDidLoad")
         hyBackImg = nil
-        // 设置按钮事件
-        btnPlay.rx.tap
-            .subscribe(onNext: { [weak self] in
-                self?.playStateChangeTrigger.accept(())
-            })
-            .disposed(by: disposeBag)
-        
-        btnRotate.rx.tap
-            .subscribe(onNext: { [weak self] in
-                self?.rotateToNextOrientation()
-            })
-            .disposed(by: disposeBag)
+        title = "视频预览".localized()
             
         openVideoTrigger.accept((playUrl, playerContainerView))
     }
     
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        playStateChangeTrigger.accept(())
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in //1s后自动隐藏控制面板
+            guard let self else { return }
+            self.playControlsHideTrigger.accept(())
+        }
     }
     
     override func viewWillDisappear(_ animated: Bool) {
