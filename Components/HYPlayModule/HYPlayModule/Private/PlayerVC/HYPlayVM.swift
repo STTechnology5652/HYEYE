@@ -14,10 +14,12 @@ class HYPlayVM: STViewModelProtocol {
     var disposeBag = DisposeBag()
     
     private var eye: any HYEYEInterface = HYEYE.create()
+    private var albumService: HYAlbumServiceInterface = HYAlbumService()
     
     // 状态相关
     private let playStateRelay = BehaviorRelay<HYEyePlayerState>(value: .shutdown)
     private let recordVideoTrigger: BehaviorRelay<(Bool, URL?)> = BehaviorRelay(value: (false, nil))
+    private let needPhotoPermisionRelay: BehaviorRelay<Bool> = BehaviorRelay(value: false)
     
     deinit {
         disposeBag = DisposeBag()
@@ -44,6 +46,7 @@ class HYPlayVM: STViewModelProtocol {
         let playStateReplay: Driver<HYEyePlayerState>
         let takePhotoTracer: Driver<UIImage?>
         let recordVideoTracer: Driver<(Bool, URL?)>
+        let needPhotoPermisionTracer: Driver<Bool>
     }
     
     // MARK: - Transform
@@ -89,7 +92,18 @@ class HYPlayVM: STViewModelProtocol {
         let photoTrigger: BehaviorRelay<UIImage?> = .init(value: nil)
         input.photoTrigger
             .subscribe(onNext: { [weak self] in
-                let image: UIImage? = self?.eye.takePhoto()
+                guard let self else { return }
+                
+                let image: UIImage? = self.eye.takePhoto()
+                if let image {
+                    self.albumService.savePhoto(image)
+                        .subscribe(onSuccess: { success in //保持照片到相册成功
+                        }, onError: { [weak self] err in
+                            guard let self else { return }
+                            self.needPhotoPermisionRelay.accept(true) //需要授权相册
+                        })
+                        .disposed(by: self.disposeBag)
+                }
                 photoTrigger.accept(image)
             })
             .disposed(by: disposeBag)
@@ -116,7 +130,8 @@ class HYPlayVM: STViewModelProtocol {
         return HYPlayVMOutput(
             playStateReplay: playStateRelay.asDriver(),
             takePhotoTracer: photoTrigger.asDriver(),
-            recordVideoTracer: recordVideoTrigger.asDriver()
+            recordVideoTracer: recordVideoTrigger.asDriver(),
+            needPhotoPermisionTracer: needPhotoPermisionRelay.asDriver()
         )
     }
 }
@@ -134,6 +149,16 @@ extension HYPlayVM: HYEYEDelegate {
     func finishRecordVideo(isRecording: Bool, videoUrl: URL?) {
         print(#function + " \(isRecording): \(videoUrl)")
         recordVideoTrigger.accept((isRecording, videoUrl))
+        
+        guard let videoUrl else { return }
+        albumService.saveVideo(videoUrl)
+            .subscribe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { saveSuccess in
+            }, onFailure: { [weak self] error in
+                guard let self else { return }
+                self.needPhotoPermisionRelay.accept(true)
+            })
+            .disposed(by: disposeBag)
     }
 }
 

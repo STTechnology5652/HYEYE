@@ -47,7 +47,8 @@ extension ViewController {
     func bindData() {
         let input: STViewControllerVM.Input = .init(
             openSetting: btnOpenSetting.rx.tap.asDriver(),
-            openPlay: btnPlay.rx.tap.asDriver()
+            openPlay: btnPlay.rx.tap.asDriver(),
+            openAlbum: btnAlbum.rx.tap.asDriver()
         )
         
         let output = vm.transformInput(input)
@@ -58,6 +59,11 @@ extension ViewController {
         
         output.openPlayCommand.drive(onNext: { [weak self] in
             self?.openPlayVC()
+        })
+        .disposed(by: disposeBag)
+        
+        output.openAlbumCommand.drive(onNext: { [weak self] in
+            self?.openAlbumVC()
         })
         .disposed(by: disposeBag)
     }
@@ -75,6 +81,18 @@ extension ViewController {
     private func openPlayVC() {
         let req = STRouterUrlRequest.instance { builder in
             builder.urlToOpen = HYRouterServiceDefine.kRouterPlay
+            builder.fromVC = self
+            builder.parameter = [
+                HYRouterServiceDefine.kRouterPara_url : HYCommonConfig.kPlayUrl
+            ]
+        }
+        
+        stRouterOpenUrlRequest(req) {_ in }
+    }
+    
+    private func openAlbumVC() {
+        let req = STRouterUrlRequest.instance { builder in
+            builder.urlToOpen = HYRouterServiceDefine.kRouterAlbum
             builder.fromVC = self
             builder.parameter = [
                 HYRouterServiceDefine.kRouterPara_url : HYCommonConfig.kPlayUrl

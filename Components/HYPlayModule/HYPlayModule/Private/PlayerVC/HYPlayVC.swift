@@ -112,6 +112,38 @@ extension HYPlayVC {
                 self?.showRecordingFinishedAlert(path: path)
             })
             .disposed(by: disposeBag)
+        
+        output.needPhotoPermisionTracer
+            .drive(onNext: { [weak self] needRequest in
+                guard let self, needRequest else { return }
+                
+                let alert = UIAlertController(
+                    title: "需要相册权限".stLocalLized,
+                    message: "请在设置中允许访问相册，以保存照片和视频".stLocalLized,
+                    preferredStyle: .alert
+                )
+                // 取消按钮
+                alert.addAction(UIAlertAction(
+                    title: "取消".stLocalLized,
+                    style: .cancel
+                ))
+                
+                // 去设置按钮
+                alert.addAction(UIAlertAction(
+                    title: "去设置".stLocalLized,
+                    style: .default,
+                    handler: { _ in
+                        guard let settingsUrl = URL(string: UIApplication.openSettingsURLString),
+                              UIApplication.shared.canOpenURL(settingsUrl) else {
+                            return
+                        }
+                        UIApplication.shared.open(settingsUrl)
+                    }
+                ))
+                
+                self.present(alert, animated: true)
+            })
+            .disposed(by: disposeBag)
     }
     
     func setUpUI() {

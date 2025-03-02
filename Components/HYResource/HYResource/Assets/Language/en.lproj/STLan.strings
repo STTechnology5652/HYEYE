@@ -17,5 +17,12 @@
 "已暂停" = "Paused";
 "已关闭" = "Closed";
 
+"相册" = "Album";
+
+"需要相册权限" = "Need Album permission.";
+"请在设置中允许访问相册，以保存照片和视频" = "Allow access to albums in Settings to save photos and videos.";
+
+"取消" = "Cancel";
+"去设置" = "To Set";
 "HYResource Example" = "HYResource Example";
 

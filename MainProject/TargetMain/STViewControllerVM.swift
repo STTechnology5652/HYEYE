@@ -15,18 +15,21 @@ class STViewControllerVM: STViewModelProtocol {
     struct Input {
         let openSetting: Driver<Void>
         let openPlay: Driver<Void>
+        let openAlbum: Driver<Void>
     }
     
     struct Output {
         let openSettingCommand: Driver<Void>
         let openPlayCommand: Driver<Void>
+        let openAlbumCommand: Driver<Void>
     }
     
     func transformInput(_ input: Input) -> Output {
         
         return Output(
             openSettingCommand: input.openSetting,
-            openPlayCommand: input.openPlay
+            openPlayCommand: input.openPlay,
+            openAlbumCommand: input.openAlbum
         )
     }
 }
