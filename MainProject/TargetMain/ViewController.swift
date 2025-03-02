@@ -15,6 +15,30 @@ class ViewController: HYBaseViewControllerMVVM {
     var vm = STViewControllerVM()
     var disposeBag = DisposeBag()
     
+    private weak var defaultLaunchImage = UIImageView()
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        let imgLaunchView = UIImageView(image: UIImage(named: "launch_image"))
+        view.addSubview(imgLaunchView)
+        defaultLaunchImage = imgLaunchView
+        imgLaunchView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if let defaultLaunchImage {
+            self.defaultLaunchImage = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                defaultLaunchImage.removeFromSuperview()
+            }
+        }
+    }
+    
     func setUpUI() {
     }
     

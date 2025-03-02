@@ -31,7 +31,9 @@ open class HYBaseVC: CYLBaseViewController {
     
     public var hyBackImg: UIImage? = UIImage.hyImage(name: "img_home_back") {
         didSet {
-            imgBackView.image = hyBackImg
+            UIView.animate(withDuration: 0.01) { // 防止闪屏
+                self.imgBackView.image = self.hyBackImg
+            }
         }
     }
     
@@ -85,6 +87,7 @@ open class HYBaseVC: CYLBaseViewController {
     }
     
     open func updateBackgroundForOrientation() {
+        if hyBackImg == nil { return }
         let orientation = UIApplication.shared.statusBarOrientation
         switch orientation {
         case .landscapeLeft, .landscapeRight:

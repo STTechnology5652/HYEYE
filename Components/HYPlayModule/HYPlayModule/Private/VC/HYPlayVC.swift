@@ -202,7 +202,7 @@ class HYPlayVC: HYBaseViewControllerMVVM {
     override func viewDidLoad() {
         super.viewDidLoad()
         print("viewDidLoad")
-        
+        hyBackImg = nil
         // 设置按钮事件
         btnPlay.rx.tap
             .subscribe(onNext: { [weak self] in

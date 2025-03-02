@@ -24,6 +24,8 @@ public protocol HYEYEInterface {
     func recordVideo() -> Bool
     func stopRecordVideo()
     static func allVideoURLs() -> [URL]
+    
+    func showDebugView(show: Bool)
 }
 
 public protocol HYEYEDelegate: AnyObject {

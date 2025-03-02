@@ -114,6 +114,10 @@ extension HYEYE: HYEYEInterface {
     public static func allVideoURLs() -> [URL] {
         return HYPlayer.allRecordedVideos()
     }
+    
+    public func showDebugView(show: Bool) {
+        player?.showDebugView(show: show)
+    }
 }
 
 public class HYEYE: NSObject {

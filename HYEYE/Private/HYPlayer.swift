@@ -150,6 +150,10 @@ extension HYPlayer {
             return []
         }
     }
+    
+    public func showDebugView(show: Bool) {
+        player?.shouldShowHudView = show
+    }
 }
 
 class HYPlayer: NSObject {
@@ -280,7 +284,7 @@ class HYPlayer: NSObject {
         let newPlayer = IJKFFMoviePlayerController(contentURL: url, with: options)
         newPlayer?.shouldAutoplay = false
         newPlayer?.scalingMode = .aspectFit
-        newPlayer?.shouldShowHudView = true
+        newPlayer?.shouldShowHudView = false
         
         // 设置后台播放
         newPlayer?.setPauseInBackground(false)
