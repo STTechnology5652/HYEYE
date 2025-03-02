@@ -206,8 +206,6 @@ class HYPlayer: NSObject {
         bindData()
     }
     
-    
-    
     private func createPlayer() {
         print("HYEYE: opening video with url: \(url)")
         

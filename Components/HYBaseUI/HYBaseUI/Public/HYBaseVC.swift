@@ -108,26 +108,18 @@ open class HYBaseVC: CYLBaseViewController {
         NotificationCenter.default.rx.notification(UIDevice.orientationDidChangeNotification)
             .subscribeOn(MainScheduler.instance)
             .subscribe(onNext: { [weak self] _ in
-                self?.updateBackgroundForOrientation()
+                self?.updateBackgroundForOrientation(UIApplication.shared.statusBarOrientation)
             })
             .disposed(by: self.disposeBagForDeviceOrientation)
     }
     
     open override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        // 启用设备方向监听
-        UIDevice.current.beginGeneratingDeviceOrientationNotifications()
-        updateBackgroundForOrientation()
+        updateBackgroundForOrientation(UIApplication.shared.statusBarOrientation)
     }
     
-    open override func viewDidDisappear(_ animated: Bool) {
-        super.viewDidDisappear(animated)
-        UIDevice.current.endGeneratingDeviceOrientationNotifications()
-    }
-    
-    open func updateBackgroundForOrientation() {
+    open func updateBackgroundForOrientation(_ orientation: UIInterfaceOrientation) {
         if hyBackImg == nil { return }
-        let orientation = UIApplication.shared.statusBarOrientation
         switch orientation {
         case .landscapeLeft, .landscapeRight:
             hyBackImg = UIImage.hyImage(name: "img_home_back_landscape")
@@ -137,7 +129,7 @@ open class HYBaseVC: CYLBaseViewController {
             break
         }
     }
-    
+
     open override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
         return .portrait
     }

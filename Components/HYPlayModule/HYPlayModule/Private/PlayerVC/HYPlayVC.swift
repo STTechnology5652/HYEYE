@@ -148,6 +148,9 @@ extension HYPlayVC {
         output.firstFrameRenderedTracer
             .drive(onNext: { [weak self] isFirstResponder in
                 if isFirstResponder {
+                    self?.hideBackIconImage(true) //隐藏页面默认的 app logo
+                    self?.hyBackImg = nil //隐藏页面默认背景图
+
                     self?.playControlsHideTrigger.accept(())
                 }
             })
@@ -164,8 +167,6 @@ extension HYPlayVC {
     }
     
     func setUpUI() {
-        hideBackIconImage(true) //隐藏页面默认的 app logo
-        hyBackImg = nil //隐藏页面默认背景图
         view.backgroundColor = .c_theme_back
         
         view.addSubview(playerContainerView)
@@ -337,6 +338,11 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         if isMovingFromParent {
             closeVideoTrigger.accept(())
         }
+        
+        // 因为之前的界面不支持 横屏， 所以需要先强制恢复竖屏， 然后再退出界面
+        UIView.animate(withDuration: 0.25) {
+            self.upateForOrientation(.portrait)
+        }
     }
     
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
@@ -386,10 +392,14 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         }
         
         currentOrientation = nextOrientation
+        upateForOrientation(nextOrientation)
+    }
+    
+    private func upateForOrientation(_ orientation: UIInterfaceOrientation) {
         
         if #available(iOS 16.0, *) {
             let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene
-            let orientation: UIInterfaceOrientationMask = switch nextOrientation {
+            let orientation: UIInterfaceOrientationMask = switch orientation {
                 case .portrait: .portrait
                 case .landscapeLeft: .landscapeLeft
                 case .landscapeRight: .landscapeRight
@@ -397,7 +407,11 @@ class HYPlayVC: HYBaseViewControllerMVVM {
             }
             windowScene?.requestGeometryUpdate(.iOS(interfaceOrientations: orientation))
         } else {
-            UIDevice.current.setValue(nextOrientation.rawValue, forKey: "orientation")
+            UIDevice.current.setValue(orientation.rawValue, forKey: "orientation")
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            super.updateBackgroundForOrientation(orientation)
         }
     }
 }

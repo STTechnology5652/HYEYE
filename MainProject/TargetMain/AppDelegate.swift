@@ -25,6 +25,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             arr.append(nav)
         }
         
+        // 启用设备方向监听
+        UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+
         tab.viewControllers = arr
         win.rootViewController = tab
         win.makeKeyAndVisible()

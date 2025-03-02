@@ -77,8 +77,8 @@ class HYAlbumVC: HYBaseViewControllerMVVM {
         loadTrigger.accept(())
     }
     
-    override func updateBackgroundForOrientation() {
-        super.updateBackgroundForOrientation()
+    override func updateBackgroundForOrientation(_ orientation: UIInterfaceOrientation) {
+        super.updateBackgroundForOrientation(orientation)
         handleOrientationChange()
     }
     
