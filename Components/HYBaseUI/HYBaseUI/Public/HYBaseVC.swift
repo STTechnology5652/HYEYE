@@ -23,7 +23,7 @@ public protocol HYBaseVC_RxProtocol {
 private class HYBackImageView : UIView {
     let backImageView: UIImageView = {
         let imgView = UIImageView(image: UIImage.hyImage(name: "img_home_back"))
-        imgView.contentMode = .scaleAspectFit
+        imgView.contentMode = .scaleToFill
         return imgView
     }()
     

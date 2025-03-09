@@ -12,16 +12,17 @@ import HYResource
 public class HYBaseNavVC: CYLBaseNavigationController {
     public override func viewDidLoad() {
         super.viewDidLoad()
-        if #available(iOS 15.0, *) {
+        if #available(iOS 13.0, *) {
             let appearance = UINavigationBarAppearance()
             appearance.backgroundColor = UIColor.c_main
             
             navigationBar.standardAppearance = appearance
             navigationBar.scrollEdgeAppearance = appearance
             navigationBar.tintColor = UIColor.c_1F2937
-            
         } else {
-            navigationBar.barTintColor = .red
+            // Fallback on earlier versions
+            navigationBar.backgroundColor = UIColor.c_main
+            navigationBar.tintColor = UIColor.c_1F2937
         }
     }
 }

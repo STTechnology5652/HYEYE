@@ -12,6 +12,7 @@ extension ViewController {
     func setUpUI() {
         view.addSubview(btnOpenSetting)
         view.addSubview(btnPlay)
+        self.tabBarController?.tabBar.isHidden = true
         
         let imgLaunchView = UIImageView(image: UIImage(named: "launch_image"))
         view.addSubview(imgLaunchView)

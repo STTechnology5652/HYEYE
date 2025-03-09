@@ -72,7 +72,7 @@ MODULE_NAME = HYEYE_Pro
 // [CFBundleIdentifier](https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundleidentifier)
 // key in the `Info.plist` file to the value of this build setting.
 
-PRODUCT_BUNDLE_IDENTIFIER = com.aivol.linecam
+PRODUCT_BUNDLE_IDENTIFIER = com.aivol.linecamQ
 
 PRODUCT_DISPLAY_NAME = HY-CamQ
 
@@ -95,4 +95,3 @@ SWIFT_OBJC_BRIDGING_HEADER = TargetMain/HYEYE_Pro-Bridging-Header.h
 
 
 SWIFT_SWIFT3_OBJC_INFERENCE = Default
-SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) K_BETA //添加 preview 宏

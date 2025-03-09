@@ -28,10 +28,17 @@ Pod::Spec.new do |spec|
 
   # ――― Resources ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
   # 放置 json,font,jpg,png等资源
-  #  spec.resources = ["HYSettingModule/{Public,Private}/**/*.{xib}"]
-  #  spec.resource_bundles = {
-  #    'HYSettingModule' => ['HYSettingModule/Assets/*.xcassets', "HYSettingModule/{Public,Private}/**/*.{png,jpg,font,json}"]
-  #  }
+    spec.resources = [
+    "HYSettingModule/{Public,Private}/**/*.{xib}",
+    'HYSettingModule/Bundles/*.bundle',
+    ]
+#    spec.resource_bundles = {
+#      'HYSettingModule' => [
+##      'HYSettingModule/Assets/*.xcassets',
+#      'HYSettingModule/Bundles/*.bundle',
+#      "HYSettingModule/{Public,Private}/**/*.{png,jpg,font,json,plist}"
+#      ]
+#    }
 
 
   # ――― Project Linking ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
@@ -61,5 +68,4 @@ Pod::Spec.new do |spec|
 spec.dependency "STComponentTools/STRouter"
 spec.dependency "STModuleService.swift"  #swift 服务中间件
 spec.dependency 'HYAllBase'
-spec.dependency 'InAppSettingsKit', '~> 2.15'
 end

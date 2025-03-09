@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PreferenceSpecifiers</key>
+	<array>
+        <dict>
+            <key>Title</key>
+            <string>飞行姿态参数</string>
+            <key>Type</key>
+            <string>PSGroupSpecifier</string>
+        </dict>
+		<dict>
+			<key>DefaultValue</key>
+			<string>NO</string>
+			<key>Key</key>
+			<string>pref.key_auto_save_parameters</string>
+			<key>Title</key>
+			<string>参数自动保存</string>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+		</dict>
+        <dict>
+            <key>Key</key>
+            <string>pref.key_reset_parameters</string>
+            <key>Title</key>
+            <string>重置参数</string>
+            <key>Type</key>
+            <string>IASKCustomViewSpecifier</string>
+        </dict>
+        
+        <dict>
+            <key>Title</key>
+            <string>界面设置</string>
+            <key>Type</key>
+            <string>PSGroupSpecifier</string>
+        </dict>
+        <dict>
+            <key>DefaultValue</key>
+            <string>NO</string>
+            <key>Key</key>
+            <string>pref.key_right_hand_mode</string>
+            <key>Title</key>
+            <string>右手模式</string>
+            <key>Type</key>
+            <string>PSToggleSwitchSpecifier</string>
+        </dict>
+        
+        <dict>
+            <key>Title</key>
+            <string>软件信息</string>
+            <key>Type</key>
+            <string>PSGroupSpecifier</string>
+        </dict>
+        <dict>
+            <key>Key</key>
+            <string>pref.key_software_version</string>
+            <key>Title</key>
+            <string>软件版本</string>
+            <key>Type</key>
+            <string>IASKCustomViewSpecifier</string>
+        </dict>
+        
+        <dict>
+            <key>Title</key>
+            <string>DEBUG_TITLE</string>
+            <key>Type</key>
+            <string>PSGroupSpecifier</string>
+        </dict>
+        <dict>
+            <key>File</key>
+            <string>Debug</string>
+            <key>Title</key>
+            <string>DEBUG_SETTINGS_TITLE</string>
+            <key>Type</key>
+            <string>PSChildPaneSpecifier</string>
+        </dict>
+	</array>
+	<key>StringsTable</key>
+	<string>Root</string>
+	<key>Title</key>
+	<string>WhereTo</string>
+</dict>
+</plist>

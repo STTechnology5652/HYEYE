@@ -92,18 +92,20 @@ end
 #
 # end
 
-=begin
+#=begin
 # 修改工程配置
 project = Xcodeproj::Project.open(project_path)
 project.targets.each do |target|
 if target.name == "HYEYE_ProQ"
 target.build_configurations.each do |config|
 config.build_settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS'] = '$(inherited) K_BETA' #添加 preview 宏
+config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = '$(inherited) K_BETA=1' #添加 preview 宏
 end
 end
 end
 
-=end
+project.save()
+#=end
 
 def pod_string_item_appen(item_str, append_str)
   item_str = item_str.blank? ? "" : item_str
@@ -119,6 +121,7 @@ post_install do |installer|
   installer.pods_project.build_configurations.each do |config|
     config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
     config.build_settings['CLANG_WARN_DOCUMENTATION_COMMENTS'] = 'NO'
+
     # xcode15 支持 c++旧版链接器
     # items_append = "$(inherited) -ld64 -ld_classic"
     # config.build_settings['OTHER_LDFLAGS'] = pod_string_item_appen(config.build_settings['OTHER_LDFLAGS'], items_append)

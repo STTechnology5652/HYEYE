@@ -9,8 +9,8 @@
 
 @implementation HYEYEEmptyOC
 + (void)load {
-#ifdef kENTERPRISE
-    NSLog(@"has kEnterprise:%d", kENTERPRISE);
+#ifdef K_BETA
+    NSLog(@"has kEnterprise:%d", K_BETA);
 #else
     NSLog(@"no kEnterprise");
 #endif
