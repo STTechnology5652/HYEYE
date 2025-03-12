@@ -9,14 +9,17 @@ import RxDataSources
 import HYBaseUI
 
 // 修改 Section 模型定义
+
+typealias HYSettingItem = HYBaseCellModelInterface & HYSettingActionInterface
 struct SettingSectionModel {
+    
     var header: String = ""  // 空字符串
-    var items: [HYBaseCellModelInterface]
+    var items: [HYSettingItem]
 }
 
 // 扩展 Section 以符合 SectionModelType
 extension SettingSectionModel: SectionModelType {
-    typealias Item = HYBaseCellModelInterface
+    typealias Item = HYSettingItem
     
     init(original: SettingSectionModel, items: [Item]) {
         self = original
@@ -31,58 +34,42 @@ final class HYSettingVM: STViewModelProtocol {
     private let sectionsRelay = PublishSubject<[SettingSectionModel]>()
     
     struct Input {
-        let reloadDataTrigger: Observable<Void>
-        let settingDidEndTrigger: Observable<Void>
-        let settingChangedTrigger: Observable<(key: String, value: Any)>
+        let reloadDataTrigger: PublishSubject<Void>
+        let cellSelectedTrigger: Observable<HYSettingItem>
     }
     
     struct Output {
-        let shouldDismiss: Observable<Void>
-        let settingUpdateResult: Observable<Bool>
         let sections: Observable<[SettingSectionModel]>
-    }
-    
-    private func reloadData() {
-        var items: [HYBaseCellModelInterface] = [ ]
-        do {
-            let icon = HYSettingCellModelCustom(title: "隐私设置".localized(), subTitle: "打开隐私设置".localized() )
-            items.append(icon)
-        }
-        
-        let section = SettingSectionModel(items: items)
-        sectionsRelay.onNext([section])
+        let cellAction: Observable<HYSettingAction>
     }
     
     func transformInput(_ input: Input) -> Output {
         input.reloadDataTrigger
-            .subscribe { [weak self] itemList in
+            .subscribe { [weak self] _ in
                 self?.reloadData()
             }
             .disposed(by: disposeBag)
         
-        // 处理设置变更
-        let settingUpdateResult = input.settingChangedTrigger
-            .map { setting -> Bool in
-                do {
-                    UserDefaults.standard.set(setting.value, forKey: setting.key)
-                    UserDefaults.standard.synchronize()
-                    
-                    NotificationCenter.default.post(
-                        name: Notification.Name("SettingChanged"),
-                        object: nil,
-                        userInfo: ["key": setting.key, "value": setting.value]
-                    )
-                    return true
-                } catch {
-                    print("Setting update failed: \(error.localizedDescription)")
-                    return false
-                }
-            }
+        // 处理 cell 点击，使用 PublishSubject 来控制事件流
+        let actionSubject = PublishSubject<HYSettingAction>()
+        
+        input.cellSelectedTrigger
+            .map { $0.getSettingAction() }
+            .bind(to: actionSubject)
+            .disposed(by: disposeBag)
         
         return Output(
-            shouldDismiss: input.settingDidEndTrigger,
-            settingUpdateResult: settingUpdateResult,
-            sections: sectionsRelay.asObservable()
+            sections: sectionsRelay.asObservable(),
+            cellAction: actionSubject.asObservable()
         )
+    }
+    
+    private func reloadData() {
+        var items: [HYSettingItem] = []
+        let icon = HYSettingCellModelCustom(title: "隐私设置".localized(), subTitle: "打开隐私设置".localized())
+        items.append(icon)
+        
+        let section = SettingSectionModel(items: items)
+        sectionsRelay.onNext([section])
     }
 }

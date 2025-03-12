@@ -329,6 +329,8 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         super.viewDidLoad()
         print("viewDidLoad")
         title = "视频预览".stLocalLized
+        setUpUI()
+        bindData()
             
         openVideoTrigger.accept((playUrl, playerContainerView))
     }

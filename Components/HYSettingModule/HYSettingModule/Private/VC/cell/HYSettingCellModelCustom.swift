@@ -42,3 +42,9 @@ struct HYSettingCellModelCustom: STViewModelProtocol, HYBaseCellModelInterface {
         self.hideArrow = hideArrow
     }
 }
+
+extension HYSettingCellModelCustom: HYSettingActionInterface {
+    func getSettingAction() -> HYSettingAction {
+        return .systemPrivacy
+    }
+}

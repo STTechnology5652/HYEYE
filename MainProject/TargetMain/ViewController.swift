@@ -126,6 +126,8 @@ class ViewController: HYBaseViewControllerMVVM {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        setUpUI()
+        bindData()
     }
     
     override func viewDidAppear(_ animated: Bool) {

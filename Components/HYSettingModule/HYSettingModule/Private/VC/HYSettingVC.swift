@@ -13,34 +13,45 @@ import HYAllBase
 // MARK: - MVVM methods
 extension HYSettingVC {
     func bindData() {
-        let settingDidEndSubject = PublishSubject<Void>()
-        let settingChangedSubject = PublishSubject<(key: String, value: Any)>()
+        // cell 点击事件
+        let cellSelectedTrigger = tableView.rx.modelSelected(HYSettingItem.self)
+            .flatMapLatest { item -> Observable<HYSettingItem> in
+                return Observable.just(item)
+            }
+            .do(onNext: { [weak self] item in
+                print("selected cell item: \(type(of: item))")
+                if let indexPath = self?.tableView.indexPathForSelectedRow {
+                    self?.tableView.deselectRow(at: indexPath, animated: true)
+                }
+            })
+            .asObservable()
         
         let input = HYSettingVM.Input(
             reloadDataTrigger: reloadDataSubject,
-            settingDidEndTrigger: settingDidEndSubject.asObservable(),
-            settingChangedTrigger: settingChangedSubject.asObservable()
+            cellSelectedTrigger: cellSelectedTrigger
         )
         
         let output = vm.transformInput(input)
         
+        // 绑定数据源
         output.sections
             .bind(to: tableView.rx.items(dataSource: dataSource))
             .disposed(by: disposeBag)
         
-        output.shouldDismiss
-            .subscribe(onNext: { [weak self] in
-                self?.navigationController?.popViewController(animated: true)
+        // 处理点击事件
+        output.cellAction
+            .throttle(.milliseconds(300), scheduler: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] action in
+                self?.handleCellAction(action)
             })
             .disposed(by: disposeBag)
-        
-        output.settingUpdateResult
-            .subscribe(onNext: { success in
-                if !success {
-                    print("设置更新失败")
-                }
-            })
-            .disposed(by: disposeBag)
+    }
+    
+    private func handleCellAction(_ action: HYSettingAction) {
+        switch action {
+        case .systemPrivacy:
+            print("打开系统隐私")
+        }
     }
 }
 
@@ -73,9 +84,9 @@ class HYSettingVC: HYBaseViewControllerMVVM, HYBaseListViewInterface {
         super.viewDidLoad()
         hyBackImg = nil
         title = "设置".stLocalLized
-        
-        setupUI()
+        setUpUI()
         bindData()
+        
         reloadDataSubject.onNext(())
     }
     

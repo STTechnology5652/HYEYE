@@ -99,14 +99,6 @@ open class HYBaseVC: CYLBaseViewController {
             cyl_navigationBarHidden = true
         }
         
-        if let `self` = self as? HYBaseVC_RxProtocol {
-            self.setUpUI()
-        }
-        
-        if let self_mvvm = self as? (any STMvvmProtocol) {
-            self_mvvm.bindData()
-        }
-        
         // 监听屏幕方向变化
         NotificationCenter.default.rx.notification(UIDevice.orientationDidChangeNotification)
             .subscribeOn(MainScheduler.instance)

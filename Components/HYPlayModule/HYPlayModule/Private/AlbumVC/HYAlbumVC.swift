@@ -74,6 +74,9 @@ class HYAlbumVC: HYBaseViewControllerMVVM {
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        setUpUI()
+        bindData()
+        
         loadTrigger.accept(())
     }
     
