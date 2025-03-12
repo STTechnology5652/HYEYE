@@ -8,8 +8,9 @@
 import RxDataSources
 import HYBaseUI
 
-// 定义 Section 模型
+// 修改 Section 模型定义
 struct SettingSectionModel {
+    var header: String = ""  // 空字符串
     var items: [HYBaseCellModelInterface]
 }
 

@@ -50,6 +50,7 @@ class HYSettingCellCustom: UITableViewCell, HYBaseCellInterface, STMvvmProtocol 
     }
     
     private func setUpUI() {
+        selectionStyle = .none
         let back = UIView()
         contentView.addSubview(back)
         let stackH = UIStackView()

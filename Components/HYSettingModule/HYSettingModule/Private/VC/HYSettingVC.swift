@@ -65,8 +65,7 @@ class HYSettingVC: HYBaseViewControllerMVVM, HYBaseListViewInterface {
                     return UITableViewCell(style: .default, reuseIdentifier: "DefaultCell")
                 }
                 return cell
-            }
-        )
+            })
     }()
 
     // MARK: - Life Cycle
@@ -102,11 +101,13 @@ class HYSettingVC: HYBaseViewControllerMVVM, HYBaseListViewInterface {
     }
     
     private lazy var tableView: UITableView = {
-        let table = UITableView(frame: .zero, style: .grouped)
+        let table = UITableView(frame: .zero, style: .plain)
         table.rowHeight = UITableView.automaticDimension
         table.estimatedRowHeight = 60
-        table.sectionHeaderHeight = 0.01
-        table.sectionFooterHeight = 0.01
+        table.sectionHeaderHeight = 0
+        table.sectionFooterHeight = 0
+        table.tableHeaderView = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: CGFloat.leastNormalMagnitude))
+        table.tableFooterView = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: CGFloat.leastNormalMagnitude))
         return table
     }()
 }
