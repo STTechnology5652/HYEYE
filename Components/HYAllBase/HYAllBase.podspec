@@ -51,6 +51,8 @@ Pod::Spec.new do |spec|
    spec.dependency "RxSwift", '6.8.0'
    spec.dependency "RxCocoa", '6.8.0'
    spec.dependency "RxRelay", '6.8.0'
+   spec.dependency "RxDataSources", '5.0.0'
+   
    spec.dependency "Then", '3.0.0'
    spec.dependency "SnapKit", '5.7.1'
    spec.dependency "Localize-Swift"

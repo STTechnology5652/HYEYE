@@ -13,6 +13,7 @@
 @_exported import RxRelay
 @_exported import RxCocoa
 @_exported import RxSwift
+@_exported import RxDataSources
 
 @_exported import SnapKit
 

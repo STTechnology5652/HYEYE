@@ -27,7 +27,7 @@ private class HYBackImageView : UIView {
         return imgView
     }()
     
-    let iconTextView: UIImageView = {
+    let iconImgView: UIImageView = {
         let imgView = UIImageView(image: UIImage.hyImage(name: "icon_text"))
         imgView.contentMode = .scaleAspectFit
         return imgView
@@ -37,13 +37,13 @@ private class HYBackImageView : UIView {
         super.init(frame: frame)
         
         addSubview(backImageView)
-        addSubview(iconTextView)
+        addSubview(iconImgView)
         
         backImageView.snp.makeConstraints { (make) in
             make.edges.equalToSuperview()
         }
         
-        iconTextView.snp.makeConstraints { (make) in
+        iconImgView.snp.makeConstraints { (make) in
             make.left.equalTo(20)
             make.top.equalTo(safeAreaLayoutGuide.snp.top)
             make.size.equalTo(CGSize(width: 260, height: 60))
@@ -65,13 +65,16 @@ open class HYBaseVC: CYLBaseViewController {
     }()
     
     public func hideBackIconImage(_ hide: Bool) {
-        self.imgBackView.iconTextView.isHidden = hide
+        self.imgBackView.iconImgView.isHidden = hide
     }
     
     public var hyBackImg: UIImage? = UIImage.hyImage(name: "img_home_back") {
         didSet {
             UIView.animate(withDuration: 0.1) { // 防止闪屏
                 self.imgBackView.backImageView.image = self.hyBackImg
+                if self.hyBackImg == nil {
+                    self.hideBackIconImage(true)
+                }
             }
         }
     }
@@ -117,7 +120,7 @@ open class HYBaseVC: CYLBaseViewController {
         super.viewDidAppear(animated)
         updateBackgroundForOrientation(UIApplication.shared.statusBarOrientation)
     }
-    
+   
     open func updateBackgroundForOrientation(_ orientation: UIInterfaceOrientation) {
         if hyBackImg == nil { return }
         switch orientation {

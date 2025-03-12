@@ -349,6 +349,10 @@ class HYPlayVC: HYBaseViewControllerMVVM {
         return [.portrait, .landscapeLeft, .landscapeRight]
     }
     
+    override var shouldAutorotate: BooleanLiteralType {
+        return false
+    }
+    
     deinit {
         print("HYPlayVC deinit")
     }

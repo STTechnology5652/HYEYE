@@ -15,14 +15,15 @@ public class HYBaseNavVC: CYLBaseNavigationController {
         if #available(iOS 13.0, *) {
             let appearance = UINavigationBarAppearance()
             appearance.backgroundColor = UIColor.c_main
+            appearance.titleTextAttributes = [NSAttributedString.Key.foregroundColor: UIColor.c_text]
             
             navigationBar.standardAppearance = appearance
             navigationBar.scrollEdgeAppearance = appearance
-            navigationBar.tintColor = UIColor.c_1F2937
         } else {
             // Fallback on earlier versions
             navigationBar.backgroundColor = UIColor.c_main
-            navigationBar.tintColor = UIColor.c_1F2937
+            navigationBar.tintColor = UIColor.c_text
+            navigationBar.titleTextAttributes = [NSAttributedString.Key.foregroundColor: UIColor.c_text]
         }
     }
 }
