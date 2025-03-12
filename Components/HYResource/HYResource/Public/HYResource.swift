@@ -47,6 +47,52 @@ extension HYResource {
         let currentLan = Localize_Swift.Localize.currentLanguage()
         return HYLanguage(rawValue: currentLan)
     }
+    
+    public static func appName() -> String {
+        return Bundle.main.infoDictionary?["CFBundleDisplayName"] as? String ?? Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "App"
+    }
+    
+    public static func appVersion() -> String {
+        return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+    }
+    
+    public static func appBuildVersion() -> String {
+        return Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+    }
+    
+    public static func appIcon() -> UIImage? {
+        // 1. 从 Assets 获取
+        if let image = UIImage(named: "AppIcon", in: Bundle.main, compatibleWith: nil) {
+            return image
+        }
+        
+        // 2. 尝试获取实际运行时的图标
+        if let icons = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any],
+           let primaryIcon = icons["CFBundlePrimaryIcon"] as? [String: Any] {
+            
+            // 2.1 尝试从 IconFiles 获取
+            if let iconFiles = primaryIcon["CFBundleIconFiles"] as? [String],
+               let iconName = iconFiles.first,
+               let image = UIImage(named: iconName, in: Bundle.main, compatibleWith: nil) {
+                return image
+            }
+            
+            // 2.2 尝试从 IconName 获取
+            if let iconName = primaryIcon["CFBundleIconName"] as? String,
+               let image = UIImage(named: iconName, in: Bundle.main, compatibleWith: nil) {
+                return image
+            }
+        }
+        
+        // 3. 尝试直接从应用包获取
+        if let iconsDictionary = Bundle.main.infoDictionary,
+           let iconFiles = iconsDictionary["CFBundleIconFiles"] as? [String],
+           let lastIcon = iconFiles.last {
+            return UIImage(named: lastIcon, in: Bundle.main, compatibleWith: nil)
+        }
+        
+        return nil
+    }
 }
 
 extension HYResource {

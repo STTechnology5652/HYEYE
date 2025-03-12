@@ -74,7 +74,17 @@ final class HYSettingVM: STViewModelProtocol {
             let oneCellModel = HYSettingCellModelCustom(title: "语言".stLocalLized, settingAction: .setLanguage)
             items.append(oneCellModel)
         }
-
+        
+        do {
+            let oneCellModel = HYSettingCellModelCustom(title: "隐私政策".stLocalLized, settingAction: .userPrivacy)
+            items.append(oneCellModel)
+        }
+        
+        do {
+            let oneCellModel = HYSettingCellModelCustom(title: "关于".stLocalLized, settingAction: .aboutUs)
+            items.append(oneCellModel)
+        }
+        
         let section = SettingSectionModel(items: items)
         sectionsRelay.onNext([section])
     }

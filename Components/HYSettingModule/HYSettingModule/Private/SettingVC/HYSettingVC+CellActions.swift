@@ -14,6 +14,10 @@ extension HYSettingVC {
             openSystemSetting()
         case .setLanguage:
             setLanguage()
+        case .aboutUs:
+            aboutUs()
+        case .userPrivacy:
+            userPrivacy()
         }
     }
 }
@@ -26,6 +30,28 @@ extension HYSettingVC {
     private func setLanguage() {
         let req = STRouterUrlRequest.instance { builder in
             builder.urlToOpen = HYRouterServiceDefine.kRouterLanguage
+            builder.fromVC = self
+        }
+        
+        stRouterOpenUrlRequest(req) {_ in }
+    }
+    
+    private func aboutUs() {
+        let req = STRouterUrlRequest.instance { builder in
+            builder.urlToOpen = HYRouterServiceDefine.kRouterAbout
+            builder.fromVC = self
+        }
+        
+        stRouterOpenUrlRequest(req) {_ in }
+    }
+    
+    private func userPrivacy() {
+        let req = STRouterUrlRequest.instance { builder in
+            builder.urlToOpen = HYRouterServiceDefine.kRouterWeb
+            builder.parameter = [
+                HYRouterServiceDefine.kRouterPara_WebUrl: "https://cv-mc.com/mark/yszc.html",
+                HYRouterServiceDefine.kRouterPara_WebTitle: "隐私政策".stLocalLized 
+            ]
             builder.fromVC = self
         }
         

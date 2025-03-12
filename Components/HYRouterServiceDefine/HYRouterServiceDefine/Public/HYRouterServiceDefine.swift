@@ -15,4 +15,9 @@ public class HYRouterServiceDefine {
 
     public static let kRouterSetting = "kRouterSetting"
     public static let kRouterLanguage = "kRouterLanguage"
+    public static let kRouterAbout = "kRouterAbout"
+    
+    public static let kRouterPara_WebUrl = "kRouterPara_WebUrl"
+    public static let kRouterPara_WebTitle = "kRouterPara_WebTitle"
+    public static let kRouterWeb = "kRouterWeb"
 }

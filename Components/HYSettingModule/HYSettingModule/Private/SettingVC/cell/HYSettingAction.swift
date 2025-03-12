@@ -14,4 +14,6 @@ protocol HYSettingActionInterface {
 enum HYSettingAction {
     case systemPrivacy
     case setLanguage
+    case aboutUs
+    case userPrivacy
 }
