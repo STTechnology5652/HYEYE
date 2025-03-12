@@ -64,7 +64,7 @@ extension HYPlayVC {
         
         // 处理播放器状态
         output.playStateReplay
-            .map { $0.stateDescription.localized() }
+            .map { $0.stateDescription.stLocalLized }
             .drive(labPlayStatus.rx.text)
             .disposed(by: disposeBag)
 

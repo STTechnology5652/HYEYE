@@ -7,12 +7,15 @@
 
 import UIKit
 import HYBaseUI
+import HYResource
 import MTCategoryComponent.UIViewController_MTFindViewController
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        
+        HYResource.loadDefaultLanguage()
         let win = UIWindow.init(frame: UIScreen.main.bounds)
         win.backgroundColor = UIColor.white
         self.window = win

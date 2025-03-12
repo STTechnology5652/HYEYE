@@ -13,10 +13,18 @@ import HYAllBase
 // MARK: - MVVM methods
 extension HYSettingVC {
     func bindData() {
+        // cell 点击事件
+        let cellSelectedTrigger = tableView.rx.modelSelected(HYSettingItem.self)
+            .do(onNext: { [weak self] item in
+                if let indexPath = self?.tableView.indexPathForSelectedRow {
+                    self?.tableView.deselectRow(at: indexPath, animated: true)
+                }
+            })
+            .share(replay: 1, scope: .whileConnected)  // 使用 share 来避免重复订阅
+        
         let input = HYSettingVM.Input(
             reloadDataTrigger: reloadDataSubject,
-            // cell 点击事件
-            cellSelectedTrigger: tableView.rx.modelSelected(HYSettingItem.self).asObservable()
+            cellSelectedTrigger: cellSelectedTrigger
         )
         
         let output = vm.transformInput(input)
@@ -28,7 +36,6 @@ extension HYSettingVC {
         
         // 处理点击事件
         output.cellAction
-            .throttle(.milliseconds(300), scheduler: MainScheduler.instance)
             .subscribe(onNext: { [weak self] action in
                 self?.deathCellAction(action)
             })
@@ -68,6 +75,7 @@ class HYSettingVC: HYBaseViewControllerMVVM, HYBaseListViewInterface {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        title = "设置".stLocalLized
         reloadDataSubject.onNext(())
     }
     

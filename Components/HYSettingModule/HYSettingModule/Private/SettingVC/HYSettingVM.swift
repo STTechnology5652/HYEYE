@@ -66,12 +66,12 @@ final class HYSettingVM: STViewModelProtocol {
     private func reloadData() {
         var items: [HYSettingItem] = []
         do {
-            let oneCellModel = HYSettingCellModelCustom(title: "隐私设置".localized(), settingAction: .systemPrivacy)
+            let oneCellModel = HYSettingCellModelCustom(title: "隐私设置".stLocalLized, settingAction: .systemPrivacy)
             items.append(oneCellModel)
         }
         
         do {
-            let oneCellModel = HYSettingCellModelCustom(title: "语言".localized(), settingAction: .setLanguage)
+            let oneCellModel = HYSettingCellModelCustom(title: "语言".stLocalLized, settingAction: .setLanguage)
             items.append(oneCellModel)
         }
 

@@ -12,12 +12,29 @@ public class HYResource: NSObject {}
 
 extension HYResource {
     public enum HYLanguage: String, CaseIterable {
-        case zh = "zh-Hans"
+        case zhHans = "zh-Hans"
+        case zh = "zh-Hant"
         case en = "en"
+        
+        public func displayName() -> String {
+            return Localize.displayNameForLanguage(rawValue)
+        }
+        
+        public func lanName() -> String {
+            return rawValue.stLocalLized
+        }
+    }
+    
+    public static func loadDefaultLanguage() {
+        if Localize_Swift.Localize.currentLanguage() == nil {
+            setLanguage(.zh)
+        }
     }
     
     public static func setLanguage(_ lan: HYLanguage? = nil) {
         if let lan {
+            print("set language: \(lan.rawValue)")
+            print("available language: \(Localize_Swift.Localize.availableLanguages())")
             Localize_Swift.Localize.setCurrentLanguage(lan.rawValue)
         }
         else {

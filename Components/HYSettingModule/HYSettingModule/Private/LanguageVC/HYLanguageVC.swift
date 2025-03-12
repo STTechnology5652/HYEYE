@@ -11,8 +11,8 @@ class HYLanguageVC: HYBaseViewControllerMVVM, HYBaseListViewInterface {
     var disposeBag: DisposeBag = DisposeBag()
     var vm = HYLanguageVM()
     
-    private var reloadDataTrigger = PublishSubject<Void>()
-    
+    private var reloadDataSubject = PublishSubject<Void>()
+
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "语言".localized()
@@ -23,12 +23,11 @@ class HYLanguageVC: HYBaseViewControllerMVVM, HYBaseListViewInterface {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        reloadDataTrigger.onNext(())
-        reloadDataTrigger.onNext(())
+        reloadDataSubject.onNext(())
     }
     
     private func updatedLanguage() {
-        title = "语言".localized()
+        title = "语言".stLocalLized
     }
     
     private lazy var tableView: UITableView = {
@@ -36,7 +35,6 @@ class HYLanguageVC: HYBaseViewControllerMVVM, HYBaseListViewInterface {
             $0.separatorStyle = .none
             $0.rowHeight = UITableView.automaticDimension
             $0.estimatedRowHeight = 20
-            $0.backgroundColor = .cyan
             $0.sectionHeaderHeight = 0
             $0.sectionFooterHeight = 0
             $0.tableHeaderView = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: CGFloat.leastNormalMagnitude))
@@ -58,12 +56,16 @@ extension HYLanguageVC {
     
     func bindData() {
         let input = HYLanguageVM.Input(
-            reloadDataTrigger: reloadDataTrigger,
+            reloadDataTrigger: reloadDataSubject,
             selectLanguageTrigger: tableView.rx.modelSelected(HYLanguageCellModel.self).asObservable()
         )
         
         let output = vm.transformInput(input)
         output.dataSource
+            .subscribe(on: MainScheduler.instance)
+            .do(onNext: { [weak self] _ in
+                self?.title = "语言".stLocalLized
+            })
             .bind(to: tableView.rx.items(dataSource: createDataSource()))
             .disposed(by: disposeBag)
     }

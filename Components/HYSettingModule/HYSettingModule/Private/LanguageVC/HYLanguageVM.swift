@@ -23,14 +23,25 @@ final class HYLanguageVM: STViewModelProtocol {
     
     func transformInput(_ input: Input) -> Output {
         input.reloadDataTrigger
-            .subscribe { [weak self] in
+            .observe(on: MainScheduler.instance)
+            .subscribe { [weak self] _ in
                 print(#function + " reload data")
                 self?.createDataSource()
             }
             .disposed(by: disposeBag)
         
+        // 处理语言选择
+        input.selectLanguageTrigger
+            .observe(on: MainScheduler.instance)
+            .withUnretained(self)
+            .subscribe { weakSelf, selectedModel in
+                HYResource.setLanguage(selectedModel.language)
+                weakSelf.createDataSource()
+            }
+            .disposed(by: disposeBag)
+        
         return Output(
-            dataSource: datasourceSubject
+            dataSource: datasourceSubject.asObservable()
         )
     }
     
