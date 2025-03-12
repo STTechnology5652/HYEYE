@@ -20,6 +20,7 @@ extension HYSettingCellCustom {
         self.dataModel = dataModel
         labTitle.text = dataModel.title
         labSubTitle.text = dataModel.subTitle
+        labSubTitle.isHidden = dataModel.subTitle?.isEmpty ?? true
         imgArrow.isHidden = dataModel.hideArrow
         labDes.text = dataModel.desText
         labDesBack.isHidden = dataModel.desText?.isEmpty ?? true
@@ -64,7 +65,6 @@ class HYSettingCellCustom: UITableViewCell, HYBaseCellInterface, STMvvmProtocol 
         
         stackH.addArrangedSubview(stackV)
         
-        
         let labDesBack = UIView()
         labDesBack.addSubview(labDes)
         stackH.addArrangedSubview(labDesBack)
@@ -74,7 +74,8 @@ class HYSettingCellCustom: UITableViewCell, HYBaseCellInterface, STMvvmProtocol 
         arrowBack.addSubview(imgArrow)
         
         back.snp.makeConstraints { make in
-            make.edges.equalTo(UIEdgeInsets(top: 5, left: 10, bottom: 5, right: 10))
+            make.edges.equalTo(UIEdgeInsets(top: 5, left: 15, bottom: 5, right: 15))
+            make.height.greaterThanOrEqualTo(40)
         }
         
         stackH.snp.makeConstraints { make in
@@ -95,6 +96,16 @@ class HYSettingCellCustom: UITableViewCell, HYBaseCellInterface, STMvvmProtocol 
             make.size.equalTo(CGSize(width: 10, height: 15))
             make.centerY.equalToSuperview()
         }
+        
+        let line = UIView()
+        contentView.addSubview(line)
+        line.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.width.equalToSuperview().offset(-30)
+            make.bottom.equalToSuperview()
+            make.height.equalTo(0.5)
+        }
+        line.backgroundColor = .c_1F2937.withAlphaComponent(0.5)
     }
     
     required init?(coder: NSCoder) {

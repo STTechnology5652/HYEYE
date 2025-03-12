@@ -13,22 +13,10 @@ import HYAllBase
 // MARK: - MVVM methods
 extension HYSettingVC {
     func bindData() {
-        // cell 点击事件
-        let cellSelectedTrigger = tableView.rx.modelSelected(HYSettingItem.self)
-            .flatMapLatest { item -> Observable<HYSettingItem> in
-                return Observable.just(item)
-            }
-            .do(onNext: { [weak self] item in
-                print("selected cell item: \(type(of: item))")
-                if let indexPath = self?.tableView.indexPathForSelectedRow {
-                    self?.tableView.deselectRow(at: indexPath, animated: true)
-                }
-            })
-            .asObservable()
-        
         let input = HYSettingVM.Input(
             reloadDataTrigger: reloadDataSubject,
-            cellSelectedTrigger: cellSelectedTrigger
+            // cell 点击事件
+            cellSelectedTrigger: tableView.rx.modelSelected(HYSettingItem.self).asObservable()
         )
         
         let output = vm.transformInput(input)
@@ -42,25 +30,15 @@ extension HYSettingVC {
         output.cellAction
             .throttle(.milliseconds(300), scheduler: MainScheduler.instance)
             .subscribe(onNext: { [weak self] action in
-                self?.handleCellAction(action)
+                self?.deathCellAction(action)
             })
             .disposed(by: disposeBag)
     }
     
-    private func handleCellAction(_ action: HYSettingAction) {
-        switch action {
-        case .systemPrivacy:
-            print("打开系统隐私")
-        }
-    }
 }
 
 @objc
 class HYSettingVC: HYBaseViewControllerMVVM, HYBaseListViewInterface {
-    func setUpUI() {
-        setupUI()
-    }
-    
     // MARK: - Properties
     var vm = HYSettingVM()
     var disposeBag = DisposeBag()
@@ -70,7 +48,7 @@ class HYSettingVC: HYBaseViewControllerMVVM, HYBaseListViewInterface {
     
     // MARK: - DataSource
     private lazy var dataSource: RxTableViewSectionedReloadDataSource<SettingSectionModel> = {
-        return RxTableViewSectionedReloadDataSource<SettingSectionModel>(
+        return RxTableViewSectionedReloadDataSource<SettingSectionModel<HYSettingItem>>(
             configureCell: { [weak self] (dataSource, tableView, indexPath, item: HYBaseCellModelInterface) -> UITableViewCell in
                 guard let cell = item.cellForIndexpath(listView: tableView, indexPath: indexPath) else {
                     return UITableViewCell(style: .default, reuseIdentifier: "DefaultCell")
@@ -78,7 +56,7 @@ class HYSettingVC: HYBaseViewControllerMVVM, HYBaseListViewInterface {
                 return cell
             })
     }()
-
+    
     // MARK: - Life Cycle
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -86,12 +64,15 @@ class HYSettingVC: HYBaseViewControllerMVVM, HYBaseListViewInterface {
         title = "设置".stLocalLized
         setUpUI()
         bindData()
-        
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
         reloadDataSubject.onNext(())
     }
     
     // MARK: - Setup
-    private func setupUI() {
+    func setUpUI() {
         view.addSubview(tableView)
         tableView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
@@ -99,7 +80,6 @@ class HYSettingVC: HYBaseViewControllerMVVM, HYBaseListViewInterface {
         
         // 注册 cell
         let cellTypeList: [(UITableViewCell & HYBaseCellInterface).Type] = [
-            HYSetCellSwitch.self,
             HYSettingCellCustom.self
         ]
         cellTypeList.forEach { (oneType: (UITableViewCell & HYBaseCellInterface).Type) in
@@ -107,18 +87,15 @@ class HYSettingVC: HYBaseViewControllerMVVM, HYBaseListViewInterface {
         }
     }
     
-    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        return .portrait
-    }
-    
     private lazy var tableView: UITableView = {
-        let table = UITableView(frame: .zero, style: .plain)
-        table.rowHeight = UITableView.automaticDimension
-        table.estimatedRowHeight = 60
-        table.sectionHeaderHeight = 0
-        table.sectionFooterHeight = 0
-        table.tableHeaderView = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: CGFloat.leastNormalMagnitude))
-        table.tableFooterView = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: CGFloat.leastNormalMagnitude))
-        return table
+        UITableView(frame: .zero, style: .plain).then {
+            $0.separatorStyle = .none
+            $0.rowHeight = UITableView.automaticDimension
+            $0.estimatedRowHeight = 60
+            $0.sectionHeaderHeight = 0
+            $0.sectionFooterHeight = 0
+            $0.tableHeaderView = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: CGFloat.leastNormalMagnitude))
+            $0.tableFooterView = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: CGFloat.leastNormalMagnitude))
+        }
     }()
 }

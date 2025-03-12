@@ -14,4 +14,5 @@ public class HYRouterServiceDefine {
     public static let kRouterAlbum = "kRouterAlbum"
 
     public static let kRouterSetting = "kRouterSetting"
+    public static let kRouterLanguage = "kRouterLanguage"
 }

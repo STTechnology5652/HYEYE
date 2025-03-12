@@ -11,7 +11,7 @@ import Localize_Swift
 public class HYResource: NSObject {}
 
 extension HYResource {
-    public enum HYLanguage: String {
+    public enum HYLanguage: String, CaseIterable {
         case zh = "zh-Hans"
         case en = "en"
     }
@@ -24,6 +24,11 @@ extension HYResource {
             let defaultLan = Localize_Swift.Localize.defaultLanguage()
             Localize_Swift.Localize.setCurrentLanguage(defaultLan)
         }
+    }
+    
+    public static func curLanguage() -> HYLanguage? {
+        let currentLan = Localize_Swift.Localize.currentLanguage()
+        return HYLanguage(rawValue: currentLan)
     }
 }
 

@@ -8,14 +8,16 @@
 import HYAllBase
 import RxSwift
 
-struct HYSettingCellModelCustom: STViewModelProtocol, HYBaseCellModelInterface {
+struct HYSettingCellModelCustom: STViewModelProtocol, HYBaseCellModelInterface,  HYSettingActionInterface {
     let title: String
-    let subTitle: String
+    let subTitle: String?
     let desText: String?
     let hideArrow: Bool
     
     var cellIdentifier: String = HYSettingCellCustom.cellIdentifier
     
+    var settingAction: HYSettingAction = .systemPrivacy
+
     struct Input {
         
     }
@@ -35,16 +37,11 @@ struct HYSettingCellModelCustom: STViewModelProtocol, HYBaseCellModelInterface {
         self.init(title: "", subTitle: "")
     }
 
-    init(title: String, subTitle: String, desText: String? = nil, hideArrow: Bool = false) {
+    init(title: String, subTitle: String? = nil, desText: String? = nil, hideArrow: Bool = false, settingAction: HYSettingAction = .systemPrivacy) {
         self.title = title
         self.subTitle = subTitle
         self.desText = desText
         self.hideArrow = hideArrow
-    }
-}
-
-extension HYSettingCellModelCustom: HYSettingActionInterface {
-    func getSettingAction() -> HYSettingAction {
-        return .systemPrivacy
+        self.settingAction = settingAction
     }
 }

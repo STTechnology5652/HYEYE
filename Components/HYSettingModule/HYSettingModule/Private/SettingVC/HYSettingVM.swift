@@ -11,15 +11,14 @@ import HYBaseUI
 // 修改 Section 模型定义
 
 typealias HYSettingItem = HYBaseCellModelInterface & HYSettingActionInterface
-struct SettingSectionModel {
-    
+struct SettingSectionModel<T> {
     var header: String = ""  // 空字符串
-    var items: [HYSettingItem]
+    var items: [T]
 }
 
 // 扩展 Section 以符合 SectionModelType
 extension SettingSectionModel: SectionModelType {
-    typealias Item = HYSettingItem
+    typealias Item = T
     
     init(original: SettingSectionModel, items: [Item]) {
         self = original
@@ -31,7 +30,7 @@ final class HYSettingVM: STViewModelProtocol {
     var disposeBag: DisposeBag = DisposeBag()
     
     // 数据源
-    private let sectionsRelay = PublishSubject<[SettingSectionModel]>()
+    private let sectionsRelay = PublishSubject<[SettingSectionModel<HYSettingItem>]>()
     
     struct Input {
         let reloadDataTrigger: PublishSubject<Void>
@@ -39,7 +38,7 @@ final class HYSettingVM: STViewModelProtocol {
     }
     
     struct Output {
-        let sections: Observable<[SettingSectionModel]>
+        let sections: Observable<[SettingSectionModel<HYSettingItem>]>
         let cellAction: Observable<HYSettingAction>
     }
     
@@ -54,7 +53,7 @@ final class HYSettingVM: STViewModelProtocol {
         let actionSubject = PublishSubject<HYSettingAction>()
         
         input.cellSelectedTrigger
-            .map { $0.getSettingAction() }
+            .map { $0.settingAction }
             .bind(to: actionSubject)
             .disposed(by: disposeBag)
         
@@ -66,9 +65,16 @@ final class HYSettingVM: STViewModelProtocol {
     
     private func reloadData() {
         var items: [HYSettingItem] = []
-        let icon = HYSettingCellModelCustom(title: "隐私设置".localized(), subTitle: "打开隐私设置".localized())
-        items.append(icon)
+        do {
+            let oneCellModel = HYSettingCellModelCustom(title: "隐私设置".localized(), settingAction: .systemPrivacy)
+            items.append(oneCellModel)
+        }
         
+        do {
+            let oneCellModel = HYSettingCellModelCustom(title: "语言".localized(), settingAction: .setLanguage)
+            items.append(oneCellModel)
+        }
+
         let section = SettingSectionModel(items: items)
         sectionsRelay.onNext([section])
     }

@@ -8,9 +8,10 @@
 import Foundation
 
 protocol HYSettingActionInterface {
-   func getSettingAction() -> HYSettingAction
+    var settingAction: HYSettingAction { get }
 }
 
 enum HYSettingAction {
     case systemPrivacy
+    case setLanguage
 }

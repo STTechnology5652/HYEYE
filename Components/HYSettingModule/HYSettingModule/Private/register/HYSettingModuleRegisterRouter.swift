@@ -17,6 +17,13 @@ private class HYSettingModuleRegisterRouter: NSObject, STRouterRegisterProtocol 
             let vc = HYSettingVC()
             topVC.navigationController?.pushViewController(vc, animated: true)
          }
+        
+        stRouterRegisterUrlParttern(HYRouterServiceDefine.kRouterLanguage, nil) { (req: STRouterUrlRequest, com: STRouterUrlCompletion?) in
+            let topVC = req.fromVC ?? UIViewController.mt_top()
+            let vc = HYLanguageVC()
+            topVC.navigationController?.pushViewController(vc, animated: true)
+         }
+        
     }
 }
 
